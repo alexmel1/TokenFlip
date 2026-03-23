@@ -111,7 +111,8 @@ export default function Home() {
           <div style={{ padding: '25px', background: 'rgba(15, 23, 42, 0.5)', borderRadius: '24px', border: '1px solid #1e293b', textAlign: 'center' }}>
             <h3 style={{ fontSize: '1rem', color: '#60a5fa', marginBottom: '10px' }}>Global Stats</h3>
             <p style={{ fontSize: '1.2rem' }}>
-              {totalGames !== undefined ? `Total Games: ${totalGames.toString()}` : 'Loading...'}
+              {/* ИСПОЛЬЗУЕМ != null ЧТОБЫ ПРОВЕРИТЬ И НА undefined И НА null */}
+              {totalGames != null ? `Total Games: ${totalGames.toString()}` : 'Loading...'}
             </p>
           </div>
 
