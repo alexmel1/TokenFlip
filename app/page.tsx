@@ -4,12 +4,14 @@ import {
   Wallet, 
   ConnectWallet, 
   WalletDropdown, 
-  WalletDropdownDisconnect,
-  Identity,
-  Avatar,
-  Name,
+  WalletDropdownDisconnect 
+} from '@coinbase/onchainkit/wallet';
+import { 
+  Identity, 
+  Avatar, 
+  Name, 
   Address 
-} from '@coinbase/onchainkit';
+} from '@coinbase/onchainkit/identity';
 import { useAccount } from 'wagmi';
 
 export default function Home() {
@@ -39,7 +41,7 @@ export default function Home() {
       {isConnected ? (
         <div style={{ padding: '30px', background: 'rgba(15, 23, 42, 0.8)', borderRadius: '24px', border: '1px solid #1e293b' }}>
           <p style={{ color: '#60a5fa', fontWeight: 'bold' }}>Wallet Connected!</p>
-          <p style={{ fontSize: '0.9rem', color: '#94a3b8' }}>Ready to build TokenFlip logic.</p>
+          <p style={{ fontSize: '0.9rem', color: '#94a3b8' }}>Ready to flip some tokens.</p>
         </div>
       ) : (
         <p style={{ color: '#64748b' }}>Connect your Smart Wallet to start</p>
