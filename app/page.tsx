@@ -7,7 +7,7 @@ import { Transaction, TransactionButton, TransactionStatus, TransactionStatusAct
 import { useAccount, useReadContract, useBalance } from 'wagmi';
 import { parseUnits, formatUnits, encodeFunctionData } from 'viem';
 
-// ВСТАВЬ СВОЙ НОВЫЙ АДРЕС ИЗ REMIX
+
 const CONTRACT_ADDRESS = '0xf7d84A56d6fAf43521C017066BD1F1703a43fC2C' as `0x${string}`;
 const USDC_ADDRESS = '0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913' as `0x${string}`;
 
