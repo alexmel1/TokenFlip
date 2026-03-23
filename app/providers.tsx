@@ -9,8 +9,15 @@ import { coinbaseWallet } from 'wagmi/connectors';
 
 const wagmiConfig = createConfig({
   chains: [base],
-  connectors: [coinbaseWallet({ appName: 'TokenFlip', preference: 'smartWalletOnly' })],
-  transports: { [base.id]: http() },
+  connectors: [
+    coinbaseWallet({ 
+      appName: 'TokenFlip',
+      preference: 'smartWalletOnly' 
+    })
+  ],
+  transports: {
+    [base.id]: http(),
+  },
 });
 
 export function Providers({ children }: { children: React.ReactNode }) {
