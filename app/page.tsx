@@ -1,68 +1,95 @@
 'use client';
 
-import { Wallet, ConnectWallet, WalletDropdown, WalletDropdownLink, WalletDropdownDisconnect } from '@coinbase/onchainkit/wallet';
-import { Identity, Avatar, Name, Address } from '@coinbase/onchainkit/identity';
+import { Wallet, ConnectWallet } from '@coinbase/onchainkit/wallet';
+import { Transaction, TransactionButton, TransactionStatus, TransactionStatusAction, TransactionStatusLabel } from '@coinbase/onchainkit/transaction';
 import { useAccount } from 'wagmi';
+import { parseUnits } from 'viem';
+
+// 1. АДРЕС ТВОЕГО КОНТРАКТА (вставь сюда то, что получил в Remix)
+const CONTRACT_ADDRESS = '0x97120190283736475f10105364b03996C2795EFC';
+// Адрес USDC на Base
+const USDC_ADDRESS = '0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913';
+
+// 2. ABI (мини-версия для функций которые нам нужны)
+const abi = [
+  {
+    name: 'createGame',
+    type: 'function',
+    stateMutability: 'external',
+    inputs: [{ name: '_amount', type: 'uint256' }],
+    outputs: [],
+  },
+];
+
+const usdcAbi = [
+  {
+    name: 'approve',
+    type: 'function',
+    stateMutability: 'external',
+    inputs: [
+      { name: 'spender', type: 'address' },
+      { name: 'amount', type: 'uint256' },
+    ],
+    outputs: [{ name: '', type: 'bool' }],
+  },
+];
 
 export default function Home() {
-  const { isConnected } = useAccount();
+  const { isConnected, address } = useAccount();
+
+  // Сумма ставки (10 USDC с учетом 6 знаков после запятой)
+  const betAmount = parseUnits('10', 6);
+
+  // Список действий для транзакции: сначала Approve, потом CreateGame
+  const calls = [
+    {
+      address: USDC_ADDRESS,
+      abi: usdcAbi,
+      functionName: 'approve',
+      args: [CONTRACT_ADDRESS, betAmount],
+    },
+    {
+      address: CONTRACT_ADDRESS,
+      abi: abi,
+      functionName: 'createGame',
+      args: [betAmount],
+    },
+  ];
 
   return (
-    <main style={{ 
-      minHeight: '100vh', 
-      display: 'flex', 
-      flexDirection: 'column', 
-      alignItems: 'center', 
-      padding: '20px',
-      color: 'white',
-      fontFamily: 'sans-serif'
-    }}>
-      {/* Шапка с кошельком */}
-      <div style={{ width: '100%', display: 'flex', justifyContent: 'flex-end', marginBottom: '40px' }}>
+    <main style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column', alignItems: 'center', padding: '20px', color: 'white', background: '#020617' }}>
+      <div style={{ width: '100%', display: 'flex', justifyContent: 'flex-end' }}>
         <Wallet>
-          <ConnectWallet>
-            <Avatar className="h-6 w-6" />
-            <Name />
-          </ConnectWallet>
-          <WalletDropdown>
-            <Identity className="px-4 pt-3 pb-2" hasCopyAddressOnClick>
-              <Avatar />
-              <Name />
-              <Address />
-            </Identity>
-            <WalletDropdownDisconnect />
-          </WalletDropdown>
+          <ConnectWallet />
         </Wallet>
       </div>
 
-      {/* Центральная часть игры */}
-      <h1 style={{ fontSize: '3rem', color: '#3b82f6', marginBottom: '10px' }}>TokenFlip</h1>
-      <p style={{ color: '#94a3b8', marginBottom: '40px' }}>1vs1 USDC Duel</p>
-
+      <h1 style={{ fontSize: '3rem', color: '#3b82f6', marginTop: '50px' }}>TokenFlip</h1>
+      
       {isConnected ? (
-        <div style={{ width: '100%', maxWidth: '400px', textAlign: 'center' }}>
-          <div style={{ padding: '40px', background: '#0f172a', borderRadius: '30px', border: '1px solid #1e293b' }}>
-            <h2 style={{ fontSize: '1.5rem', marginBottom: '20px' }}>Join a Duel</h2>
-            <button style={{
-              width: '100%',
-              padding: '15px',
-              backgroundColor: '#3b82f6',
-              border: 'none',
-              borderRadius: '12px',
-              color: 'white',
-              fontSize: '1.1rem',
-              fontWeight: 'bold',
-              cursor: 'pointer'
-            }}>
-              Create Room (10 USDC)
-            </button>
-            <p style={{ marginTop: '15px', fontSize: '0.8rem', color: '#64748b' }}>
-              Winner takes all! Fully on-chain.
-            </p>
-          </div>
+        <div style={{ marginTop: '40px', padding: '30px', background: '#0f172a', borderRadius: '24px', border: '1px solid #1e293b', width: '100%', maxWidth: '400px' }}>
+          <h2 style={{ marginBottom: '20px' }}>Create 10 USDC Room</h2>
+          
+          <Transaction 
+            chainId={8453} // ID сети Base
+            calls={calls}
+            onSuccess={(response) => console.log('Success!', response)}
+          >
+            <TransactionButton text="Start Duel" className="w-full bg-blue-600 hover:bg-blue-700" />
+            <TransactionStatus>
+              <TransactionStatusLabel />
+              <TransactionStatusAction />
+            </TransactionStatus>
+          </Transaction>
+
+          <p style={{ fontSize: '0.8rem', color: '#64748b', marginTop: '15px' }}>
+            This will approve 10 USDC and create a room in one click.
+          </p>
         </div>
       ) : (
-        <p style={{ color: '#60a5fa', fontSize: '1.2rem' }}>Connect your wallet to play</p>
+        <div style={{ marginTop: '50px', textAlign: 'center' }}>
+          <p>Please connect your wallet to start flipping</p>
+        </div>
       )}
     </main>
   );
