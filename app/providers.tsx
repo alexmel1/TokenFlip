@@ -7,20 +7,19 @@ import { base } from 'wagmi/chains';
 import { coinbaseWallet } from 'wagmi/connectors';
 import { ReactNode, useState } from 'react';
 
+const wagmiConfig = createConfig({
+  chains: [base],
+  connectors: [
+    coinbaseWallet({ 
+      appName: 'TokenFlip',
+      preference: 'smartWalletOnly'
+    })
+  ],
+  transports: { [base.id]: http() },
+});
+
 export function Providers({ children }: { children: ReactNode }) {
   const [queryClient] = useState(() => new QueryClient());
-  const [wagmiConfig] = useState(() => 
-    createConfig({
-      chains: [base],
-      connectors: [
-        coinbaseWallet({ 
-          appName: 'TokenFlip',
-          preference: 'smartWalletOnly'
-        })
-      ],
-      transports: { [base.id]: http() },
-    })
-  );
 
   return (
     <WagmiProvider config={wagmiConfig}>
