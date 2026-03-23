@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { Wallet, ConnectWallet, WalletDropdown, WalletDropdownDisconnect } from '@coinbase/onchainkit/wallet';
 import { Identity, Avatar, Name, Address } from '@coinbase/onchainkit/identity';
 import { Transaction, TransactionButton, TransactionStatus, TransactionStatusAction, TransactionStatusLabel } from '@coinbase/onchainkit/transaction'; 
@@ -21,11 +21,11 @@ const usdcAbi = [{ name: 'approve', type: 'function', stateMutability: 'external
 export default function Home() {
   const { isConnected, address } = useAccount();
   const [amount, setAmount] = useState('0.01');
-  const [isFlipping, setIsFlipping] = useState(false);
-  const [lastResult, setLastResult] = useState<'win' | 'lose' | null>(null);
+  const [gameState, setGameState] = useState<'idle' | 'flipping' | 'result'>('idle');
+  const [winStatus, setWinStatus] = useState<'win' | 'lose' | null>(null);
 
   const { data: ethBalance } = useBalance({ address });
-  const { data: usdcBalance } = useBalance({ address, token: USDC_ADDRESS });
+  const { data: usdcBalance, refetch: refetchUSDC } = useBalance({ address, token: USDC_ADDRESS });
   const { data: lobbyData, refetch: refreshLobby } = useReadContract({ address: CONTRACT_ADDRESS, abi, functionName: 'getOpenGames' });
 
   const lobby = lobbyData as unknown as [bigint[], `0x${string}`[], bigint[]] | undefined;
@@ -41,109 +41,133 @@ export default function Home() {
     ];
   }, [amount]);
 
-  const handleTransactionSuccess = () => {
-    setIsFlipping(true);
-    // Имитируем вращение монетки 3 секунды, пока блокчейн финализирует данные
-    setTimeout(() => {
-        setIsFlipping(false);
-        refreshLobby();
-        // В идеале тут надо проверить, изменился ли баланс USDC
-        setLastResult('win'); 
-    }, 4000);
+  const startFlipAnimation = async () => {
+    const oldBalance = usdcBalance?.value || 0n;
+    setGameState('flipping');
+    
+    // Ждем 4 секунды анимации
+    setTimeout(async () => {
+      const { data: newBalanceData } = await refetchUSDC();
+      const newBalance = newBalanceData?.value || 0n;
+      
+      // Если баланс вырос — значит выиграли
+      setWinStatus(newBalance > oldBalance ? 'win' : 'lose');
+      setGameState('result');
+      refreshLobby();
+    }, 4500);
   };
 
   return (
-    <main style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column', alignItems: 'center', padding: '20px', color: 'white', background: 'radial-gradient(circle at center, #1e293b 0%, #020617 100%)', fontFamily: 'sans-serif' }}>
+    <main style={{ minHeight: '100vh', background: '#020617', color: 'white', fontFamily: 'sans-serif', padding: '20px' }}>
       
-      {/* CSS АНИМАЦИЯ МОНЕТКИ */}
+      {/* СТИЛИ АНИМАЦИИ */}
       <style dangerouslySetInnerHTML={{ __html: `
-        @keyframes flip {
-          0% { transform: rotateY(0); }
-          100% { transform: rotateY(1800deg); }
+        @keyframes superFlip {
+          0% { transform: rotateX(0); }
+          100% { transform: rotateX(1800deg) scale(1.1); }
         }
-        .coin {
-          width: 100px; height: 100px;
-          background: #f59e0b; border-radius: 50%;
-          border: 4px solid #d97706;
-          display: flex; align-items: center; justify-content: center;
-          font-size: 2rem; font-weight: bold; color: #78350f;
-          box-shadow: 0 0 20px #f59e0b;
-          margin-bottom: 20px;
-          transition: all 0.5s;
+        .overlay {
+          position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;
+          background: rgba(2, 6, 23, 0.95); z-index: 100;
+          display: flex; flex-direction: column; align-items: center; justify-content: center;
+          backdrop-filter: blur(10px);
         }
-        .flipping { animation: flip 4s cubic-bezier(0.4, 0, 0.2, 1); }
+        .coin-box {
+          width: 200px; height: 200px; perspective: 1000px;
+        }
+        .coin-img {
+          width: 100%; height: 100%; object-fit: contain;
+          border-radius: 50%; box-shadow: 0 0 50px rgba(59, 130, 246, 0.5);
+        }
+        .flipping-active { animation: superFlip 4s cubic-bezier(0.1, 0, 0.3, 1) forwards; }
+        .win-glow { box-shadow: 0 0 80px #10b981 !important; border: 4px solid #10b981; }
+        .lose-glow { filter: grayscale(1) opacity(0.5); }
       `}} />
 
-      <div style={{ width: '100%', display: 'flex', justifyContent: 'flex-end', gap: '10px' }}>
-        <div style={{ textAlign: 'right', fontSize: '0.8rem' }}>
-          <div>ETH: {ethBalance?.formatted.slice(0, 6)}</div>
-          <div style={{ color: '#3b82f6' }}>USDC: {usdcBalance?.formatted.slice(0, 4)}</div>
-        </div>
-        <Wallet><ConnectWallet><Avatar className="h-6 w-6" /><Name /></ConnectWallet><WalletDropdown><WalletDropdownDisconnect /></WalletDropdown></Wallet>
-      </div>
+      {/* OVERLAY ОКНО ДЛЯ БРОСКА */}
+      {gameState !== 'idle' && (
+        <div className="overlay">
+          <div className="coin-box">
+            <img 
+              src="/coin.png" 
+              className={`coin-img ${gameState === 'flipping' ? 'flipping-active' : ''} ${winStatus === 'win' ? 'win-glow' : winStatus === 'lose' ? 'lose-glow' : ''}`}
+            />
+          </div>
+          
+          <h2 style={{ marginTop: '40px', fontSize: '2rem', color: winStatus === 'win' ? '#10b981' : winStatus === 'lose' ? '#ef4444' : '#3b82f6' }}>
+            {gameState === 'flipping' ? 'FLIPPING...' : winStatus === 'win' ? 'YOU WON!' : 'YOU LOST!'}
+          </h2>
 
-      <h1 style={{ fontSize: '3rem', color: '#3b82f6', fontWeight: 'bold', marginTop: '20px' }}>TokenFlip</h1>
-
-      {/* ВИЗУАЛЬНАЯ МОНЕТКА */}
-      <div className={`coin ${isFlipping ? 'flipping' : ''}`}>
-        {isFlipping ? '?' : '$'}
-      </div>
-
-      {lastResult && !isFlipping && (
-        <div style={{ color: '#10b981', marginBottom: '20px', fontSize: '1.2rem', fontWeight: 'bold' }}>
-          Transaction Complete! Check balance.
+          {gameState === 'result' && (
+            <button 
+              onClick={() => {setGameState('idle'); setWinStatus(null);}}
+              style={{ marginTop: '20px', padding: '12px 30px', borderRadius: '12px', background: '#1e293b', color: 'white', border: 'none', cursor: 'pointer' }}
+            >
+              Back to Lobby
+            </button>
+          )}
         </div>
       )}
 
+      {/* HEADER */}
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '40px' }}>
+        <h1 style={{ fontSize: '2rem', color: '#3b82f6', fontWeight: 'bold' }}>TokenFlip</h1>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '15px' }}>
+            <div style={{ textAlign: 'right', fontSize: '0.8rem' }}>
+                <div style={{ color: '#94a3b8' }}>{ethBalance?.formatted.slice(0, 6)} ETH</div>
+                <div style={{ color: '#3b82f6', fontWeight: 'bold' }}>{usdcBalance?.formatted.slice(0, 4)} USDC</div>
+            </div>
+            <Wallet><ConnectWallet><Avatar className="h-6 w-6" /><Name /></ConnectWallet><WalletDropdown><WalletDropdownDisconnect /></WalletDropdown></Wallet>
+        </div>
+      </div>
+
       {isConnected ? (
-        <div style={{ width: '100%', maxWidth: '500px' }}>
+        <div style={{ width: '100%', maxWidth: '500px', margin: '0 auto' }}>
           
-          <div style={{ padding: '25px', background: 'rgba(15, 23, 42, 0.8)', borderRadius: '24px', border: '1px solid #1e293b', marginBottom: '30px', textAlign: 'center' }}>
-            <h2 style={{ marginBottom: '15px', fontSize: '1.1rem' }}>Create Duel</h2>
-            <input type="text" value={amount} onChange={(e) => setAmount(e.target.value)} style={{ width: '80%', padding: '10px', borderRadius: '10px', background: '#020617', border: '1px solid #3b82f6', color: 'white', marginBottom: '15px', textAlign: 'center' }} />
-            <Transaction chainId={8453} calls={createCalls as any} onSuccess={handleTransactionSuccess}>
-              <TransactionButton text={`Flip for ${amount} USDC`} className="bg-blue-600 w-full" />
-              <TransactionStatus><TransactionStatusLabel /><TransactionStatusAction /></TransactionStatus>
+          {/* CREATE DUEL */}
+          <div style={{ padding: '25px', background: '#0f172a', borderRadius: '24px', border: '1px solid #1e293b', marginBottom: '30px', textAlign: 'center' }}>
+            <div style={{ marginBottom: '15px', color: '#94a3b8' }}>Set Bet Amount</div>
+            <input type="text" value={amount} onChange={(e) => setAmount(e.target.value)} style={{ width: '100%', padding: '15px', borderRadius: '12px', background: '#020617', border: '1px solid #3b82f6', color: 'white', marginBottom: '20px', textAlign: 'center', fontSize: '1.5rem' }} />
+            <Transaction chainId={8453} calls={createCalls as any} onSuccess={() => refreshLobby()}>
+              <TransactionButton text={`Create Duel for ${amount} USDC`} className="bg-blue-600 w-full rounded-xl font-bold py-4" />
             </Transaction>
           </div>
 
-          <div style={{ padding: '20px', background: 'rgba(15, 23, 42, 0.5)', borderRadius: '24px', border: '1px solid #1e293b' }}>
-            <h2 style={{ fontSize: '1.2rem', marginBottom: '15px' }}>Active Duels</h2>
-            
+          {/* ACTIVE DUELS */}
+          <div style={{ padding: '20px', background: '#0f172a', borderRadius: '24px', border: '1px solid #1e293b' }}>
+            <h3 style={{ marginBottom: '20px', fontSize: '1.1rem', color: '#94a3b8' }}>Active Duels</h3>
             {activeIds.length > 0 ? (
               [...activeIds].reverse().map((id, index) => {
-                const originalIndex = activeIds.length - 1 - index;
-                const duelAmount = activeAmounts[originalIndex];
+                const i = activeIds.length - 1 - index;
                 return (
-                    <div key={id.toString()} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '12px 20px', background: '#0f172a', borderRadius: '16px', marginBottom: '10px', border: '1px solid #1e293b' }}>
+                    <div key={id.toString()} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '15px', background: '#1e293b', borderRadius: '16px', marginBottom: '10px' }}>
                         <div>
-                            <div style={{ fontSize: '1.1rem', fontWeight: 'bold', color: '#10b981' }}>{formatUnits(duelAmount, 6)} USDC</div>
-                            <div style={{ fontSize: '0.75rem', color: '#64748b' }}>by {activePlayers[originalIndex].slice(0, 6)}...</div>
+                            <div style={{ fontWeight: 'bold', fontSize: '1.1rem' }}>{formatUnits(activeAmounts[i], 6)} USDC</div>
+                            <div style={{ fontSize: '0.7rem', color: '#64748b' }}>{activePlayers[i].slice(0, 8)}...</div>
                         </div>
-                        
-                        <div style={{ width: '100px' }}>
-                          <Transaction 
-                              chainId={8453} 
-                              calls={[
-                                  { to: USDC_ADDRESS, data: encodeFunctionData({ abi: usdcAbi, functionName: 'approve', args: [CONTRACT_ADDRESS, duelAmount] }) },
-                                  { to: CONTRACT_ADDRESS, data: encodeFunctionData({ abi: abi, functionName: 'joinGame', args: [id] }) }
-                              ] as any}
-                              onSuccess={handleTransactionSuccess}
-                          >
-                              <TransactionButton text="Join" className="bg-green-600 !py-2 !px-4 !text-sm !min-w-0" />
-                          </Transaction>
-                        </div>
+                        <Transaction 
+                            chainId={8453} 
+                            calls={[
+                                { to: USDC_ADDRESS, data: encodeFunctionData({ abi: usdcAbi, functionName: 'approve', args: [CONTRACT_ADDRESS, activeAmounts[i]] }) },
+                                { to: CONTRACT_ADDRESS, data: encodeFunctionData({ abi: abi, functionName: 'joinGame', args: [id] }) }
+                            ] as any}
+                            onSuccess={startFlipAnimation}
+                        >
+                            <TransactionButton text="Join" className="bg-green-600 !py-2 !px-6 !text-sm !min-w-0" />
+                        </Transaction>
                     </div>
                 );
               })
             ) : (
-              <p style={{ color: '#64748b', textAlign: 'center', fontSize: '0.9rem' }}>No active duels found.</p>
+              <p style={{ textAlign: 'center', color: '#64748b' }}>No duels found.</p>
             )}
           </div>
-
         </div>
       ) : (
-        <p style={{ marginTop: '100px', color: '#60a5fa' }}>Connect Wallet to Play</p>
+        <div style={{ textAlign: 'center', marginTop: '100px' }}>
+          <h2 style={{ color: '#3b82f6' }}>Ready to Flip?</h2>
+          <p>Connect your wallet to start.</p>
+        </div>
       )}
     </main>
   );
