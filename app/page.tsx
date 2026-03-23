@@ -26,15 +26,13 @@ export default function Home() {
   const { data: ethBalance } = useBalance({ address });
   const { data: usdcBalance } = useBalance({ address, token: USDC_ADDRESS });
 
-  // Читаем список открытых игр
   const { data: lobbyData, refetch: refreshLobby } = useReadContract({
     address: CONTRACT_ADDRESS,
     abi,
     functionName: 'getOpenGames',
   });
 
-  // ЖЕСТКОЕ ПРИВЕДЕНИЕ ТИПА ДЛЯ ТАЙПСКРИПТА
-  // Мы говорим ему: "Верь нам, там придет массив из трех подмассивов"
+  // Приведение типа для лобби
   const lobby = lobbyData as unknown as [bigint[], `0x${string}`[], bigint[]] | undefined;
   
   const activeIds = lobby?.[0] || [];
@@ -65,6 +63,7 @@ export default function Home() {
       {isConnected ? (
         <div style={{ width: '100%', maxWidth: '500px', marginTop: '30px' }}>
           
+          {/* Создание игры */}
           <div style={{ padding: '25px', background: 'rgba(15, 23, 42, 0.8)', borderRadius: '24px', border: '1px solid #1e293b', marginBottom: '30px', textAlign: 'center' }}>
             <h2 style={{ marginBottom: '15px', fontSize: '1.1rem' }}>Create Duel</h2>
             <input type="text" value={amount} onChange={(e) => setAmount(e.target.value)} style={{ width: '80%', padding: '10px', borderRadius: '10px', background: '#020617', border: '1px solid #3b82f6', color: 'white', marginBottom: '15px', textAlign: 'center' }} />
@@ -74,6 +73,7 @@ export default function Home() {
             </Transaction>
           </div>
 
+          {/* ЛОББИ */}
           <div style={{ padding: '20px', background: 'rgba(15, 23, 42, 0.5)', borderRadius: '24px', border: '1px solid #1e293b' }}>
             <h2 style={{ fontSize: '1.2rem', marginBottom: '15px' }}>Active Duels</h2>
             
@@ -93,7 +93,8 @@ export default function Home() {
                     ] as any}
                     onSuccess={() => refreshLobby()}
                   >
-                    <TransactionButton text="Join" style={{ padding: '8px 20px', borderRadius: '8px', background: '#10b981', color: 'white', border: 'none', cursor: 'pointer', fontWeight: 'bold' }} />
+                    {/* ТУТ ИСПРАВЛЕНО: УБРАЛИ style, ОСТАВИЛИ className */}
+                    <TransactionButton text="Join" className="bg-green-600" />
                   </Transaction>
                 </div>
               ))
