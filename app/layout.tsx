@@ -5,7 +5,7 @@ import "@coinbase/onchainkit/styles.css";
 export const metadata: Metadata = {
   title: "TokenFlip",
   other: {
-    'base:app_id': '69c0b79476e804b2a67a9f82',
+    'base:app_id': '69c0b79476e804b2a67a9f96',
   },
 };
 
