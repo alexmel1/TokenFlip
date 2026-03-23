@@ -21,15 +21,12 @@ const usdcAbi = [{ name: 'approve', type: 'function', stateMutability: 'external
 export default function Home() {
   const { isConnected, address } = useAccount();
   const [amount, setAmount] = useState('0.01');
+  const [isFlipping, setIsFlipping] = useState(false);
+  const [lastResult, setLastResult] = useState<'win' | 'lose' | null>(null);
 
   const { data: ethBalance } = useBalance({ address });
   const { data: usdcBalance } = useBalance({ address, token: USDC_ADDRESS });
-
-  const { data: lobbyData, refetch: refreshLobby } = useReadContract({
-    address: CONTRACT_ADDRESS,
-    abi,
-    functionName: 'getOpenGames',
-  });
+  const { data: lobbyData, refetch: refreshLobby } = useReadContract({ address: CONTRACT_ADDRESS, abi, functionName: 'getOpenGames' });
 
   const lobby = lobbyData as unknown as [bigint[], `0x${string}`[], bigint[]] | undefined;
   const activeIds = lobby?.[0] || [];
@@ -44,32 +41,68 @@ export default function Home() {
     ];
   }, [amount]);
 
+  const handleTransactionSuccess = () => {
+    setIsFlipping(true);
+    // Имитируем вращение монетки 3 секунды, пока блокчейн финализирует данные
+    setTimeout(() => {
+        setIsFlipping(false);
+        refreshLobby();
+        // В идеале тут надо проверить, изменился ли баланс USDC
+        setLastResult('win'); 
+    }, 4000);
+  };
+
   return (
     <main style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column', alignItems: 'center', padding: '20px', color: 'white', background: 'radial-gradient(circle at center, #1e293b 0%, #020617 100%)', fontFamily: 'sans-serif' }}>
       
+      {/* CSS АНИМАЦИЯ МОНЕТКИ */}
+      <style dangerouslySetInnerHTML={{ __html: `
+        @keyframes flip {
+          0% { transform: rotateY(0); }
+          100% { transform: rotateY(1800deg); }
+        }
+        .coin {
+          width: 100px; height: 100px;
+          background: #f59e0b; border-radius: 50%;
+          border: 4px solid #d97706;
+          display: flex; align-items: center; justify-content: center;
+          font-size: 2rem; font-weight: bold; color: #78350f;
+          box-shadow: 0 0 20px #f59e0b;
+          margin-bottom: 20px;
+          transition: all 0.5s;
+        }
+        .flipping { animation: flip 4s cubic-bezier(0.4, 0, 0.2, 1); }
+      `}} />
+
       <div style={{ width: '100%', display: 'flex', justifyContent: 'flex-end', gap: '10px' }}>
-        <div style={{ textAlign: 'right', fontSize: '0.8rem', marginRight: '10px' }}>
+        <div style={{ textAlign: 'right', fontSize: '0.8rem' }}>
           <div>ETH: {ethBalance?.formatted.slice(0, 6)}</div>
           <div style={{ color: '#3b82f6' }}>USDC: {usdcBalance?.formatted.slice(0, 4)}</div>
         </div>
         <Wallet><ConnectWallet><Avatar className="h-6 w-6" /><Name /></ConnectWallet><WalletDropdown><WalletDropdownDisconnect /></WalletDropdown></Wallet>
       </div>
 
-      <h1 style={{ fontSize: '3rem', color: '#3b82f6', fontWeight: 'bold', marginTop: '30px' }}>TokenFlip</h1>
+      <h1 style={{ fontSize: '3rem', color: '#3b82f6', fontWeight: 'bold', marginTop: '20px' }}>TokenFlip</h1>
+
+      {/* ВИЗУАЛЬНАЯ МОНЕТКА */}
+      <div className={`coin ${isFlipping ? 'flipping' : ''}`}>
+        {isFlipping ? '?' : '$'}
+      </div>
+
+      {lastResult && !isFlipping && (
+        <div style={{ color: '#10b981', marginBottom: '20px', fontSize: '1.2rem', fontWeight: 'bold' }}>
+          Transaction Complete! Check balance.
+        </div>
+      )}
 
       {isConnected ? (
-        <div style={{ width: '100%', maxWidth: '500px', marginTop: '30px' }}>
+        <div style={{ width: '100%', maxWidth: '500px' }}>
           
           <div style={{ padding: '25px', background: 'rgba(15, 23, 42, 0.8)', borderRadius: '24px', border: '1px solid #1e293b', marginBottom: '30px', textAlign: 'center' }}>
             <h2 style={{ marginBottom: '15px', fontSize: '1.1rem' }}>Create Duel</h2>
-            <input 
-                type="text" 
-                value={amount} 
-                onChange={(e) => setAmount(e.target.value)} 
-                style={{ width: '80%', padding: '10px', borderRadius: '10px', background: '#020617', border: '1px solid #3b82f6', color: 'white', marginBottom: '15px', textAlign: 'center' }} 
-            />
-            <Transaction chainId={8453} calls={createCalls as any} onSuccess={() => refreshLobby()}>
-              <TransactionButton text={`Flip for ${amount} USDC`} className="bg-blue-600 w-full rounded-xl font-bold" />
+            <input type="text" value={amount} onChange={(e) => setAmount(e.target.value)} style={{ width: '80%', padding: '10px', borderRadius: '10px', background: '#020617', border: '1px solid #3b82f6', color: 'white', marginBottom: '15px', textAlign: 'center' }} />
+            <Transaction chainId={8453} calls={createCalls as any} onSuccess={handleTransactionSuccess}>
+              <TransactionButton text={`Flip for ${amount} USDC`} className="bg-blue-600 w-full" />
               <TransactionStatus><TransactionStatusLabel /><TransactionStatusAction /></TransactionStatus>
             </Transaction>
           </div>
@@ -80,22 +113,22 @@ export default function Home() {
             {activeIds.length > 0 ? (
               [...activeIds].reverse().map((id, index) => {
                 const originalIndex = activeIds.length - 1 - index;
+                const duelAmount = activeAmounts[originalIndex];
                 return (
                     <div key={id.toString()} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '12px 20px', background: '#0f172a', borderRadius: '16px', marginBottom: '10px', border: '1px solid #1e293b' }}>
                         <div>
-                            <div style={{ fontSize: '1.1rem', fontWeight: 'bold', color: '#10b981' }}>{formatUnits(activeAmounts[originalIndex], 6)} USDC</div>
+                            <div style={{ fontSize: '1.1rem', fontWeight: 'bold', color: '#10b981' }}>{formatUnits(duelAmount, 6)} USDC</div>
                             <div style={{ fontSize: '0.75rem', color: '#64748b' }}>by {activePlayers[originalIndex].slice(0, 6)}...</div>
                         </div>
                         
-                        {/* Ограничиваем ширину контейнера транзакции, чтобы кнопка была маленькой */}
                         <div style={{ width: '100px' }}>
                           <Transaction 
                               chainId={8453} 
                               calls={[
-                                  { to: USDC_ADDRESS, data: encodeFunctionData({ abi: usdcAbi, functionName: 'approve', args: [CONTRACT_ADDRESS, activeAmounts[originalIndex]] }) },
+                                  { to: USDC_ADDRESS, data: encodeFunctionData({ abi: usdcAbi, functionName: 'approve', args: [CONTRACT_ADDRESS, duelAmount] }) },
                                   { to: CONTRACT_ADDRESS, data: encodeFunctionData({ abi: abi, functionName: 'joinGame', args: [id] }) }
                               ] as any}
-                              onSuccess={() => refreshLobby()}
+                              onSuccess={handleTransactionSuccess}
                           >
                               <TransactionButton text="Join" className="bg-green-600 !py-2 !px-4 !text-sm !min-w-0" />
                           </Transaction>
@@ -104,7 +137,7 @@ export default function Home() {
                 );
               })
             ) : (
-              <p style={{ color: '#64748b', textAlign: 'center', fontSize: '0.9rem' }}>No active duels found. Create one above!</p>
+              <p style={{ color: '#64748b', textAlign: 'center', fontSize: '0.9rem' }}>No active duels found.</p>
             )}
           </div>
 
