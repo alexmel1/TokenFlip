@@ -32,20 +32,18 @@ const usdcAbi = [{ name: 'approve', type: 'function', stateMutability: 'external
 
 export default function Home() {
   const { isConnected } = useAccount();
-
-  // Ставка 10 USDC (учитываем 6 знаков после запятой у токена USDC)
   const betAmount = parseUnits('10', 6);
 
-  // Очередь транзакций: Сначала Approve, потом CreateGame
+  // ИЗМЕНЕНИЕ ЗДЕСЬ: address заменен на to
   const calls = [
     {
-      address: USDC_ADDRESS,
+      to: USDC_ADDRESS,
       abi: usdcAbi,
       functionName: 'approve',
       args: [CONTRACT_ADDRESS, betAmount],
     },
     {
-      address: CONTRACT_ADDRESS,
+      to: CONTRACT_ADDRESS,
       abi: abi,
       functionName: 'createGame',
       args: [betAmount],
@@ -55,7 +53,6 @@ export default function Home() {
   return (
     <main style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column', alignItems: 'center', padding: '20px', color: 'white', background: 'radial-gradient(circle at center, #1e293b 0%, #020617 100%)', fontFamily: 'sans-serif' }}>
       
-      {/* Кнопка кошелька в углу */}
       <div style={{ width: '100%', display: 'flex', justifyContent: 'flex-end', marginBottom: '50px' }}>
         <Wallet>
           <ConnectWallet>
@@ -77,8 +74,6 @@ export default function Home() {
       {isConnected ? (
         <div style={{ width: '100%', maxWidth: '400px', padding: '40px', background: 'rgba(15, 23, 42, 0.8)', borderRadius: '32px', border: '1px solid #1e293b', textAlign: 'center' }}>
           <h2 style={{ fontSize: '1.5rem', marginBottom: '24px' }}>Duel for 10 USDC</h2>
-          
-          {/* Компонент транзакции OnchainKit */}
           <Transaction 
             chainId={8453} 
             calls={calls}
@@ -90,10 +85,6 @@ export default function Home() {
               <TransactionStatusAction />
             </TransactionStatus>
           </Transaction>
-
-          <p style={{ marginTop: '20px', fontSize: '0.8rem', color: '#64748b' }}>
-            Approve + Create Room in one click
-          </p>
         </div>
       ) : (
         <p style={{ color: '#60a5fa', fontSize: '1.2rem' }}>Connect your wallet to play</p>
