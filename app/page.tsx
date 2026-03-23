@@ -1,15 +1,22 @@
 'use client';
 
+// 1. Импорты для кошелька
 import { 
   Wallet, 
   ConnectWallet, 
   WalletDropdown, 
-  WalletDropdownDisconnect,
-  Identity,
-  Avatar,
-  Name,
-  Address 
+  WalletDropdownDisconnect 
 } from '@coinbase/onchainkit/wallet';
+
+// 2. Импорты для профиля (Identity) - ВОТ ЗДЕСЬ БЫЛА ОШИБКА
+import { 
+  Identity, 
+  Avatar, 
+  Name, 
+  Address 
+} from '@coinbase/onchainkit/identity';
+
+// 3. Импорты для транзакций
 import { 
   Transaction, 
   TransactionButton, 
@@ -17,23 +24,21 @@ import {
   TransactionStatusAction, 
   TransactionStatusLabel 
 } from '@coinbase/onchainkit/transaction'; 
+
 import { useAccount } from 'wagmi';
 import { parseUnits } from 'viem';
 
 export default function Home() {
   const { isConnected } = useAccount();
 
-  // Адреса контрактов
   const CONTRACT_ADDRESS = '0x97120190283736475f10105364b03996C2795EFC';
   const USDC_ADDRESS = '0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913';
 
-  // Описание функций (ABI)
   const abi = [{ name: 'createGame', type: 'function', stateMutability: 'external', inputs: [{ name: '_amount', type: 'uint256' }], outputs: [] }] as const;
   const usdcAbi = [{ name: 'approve', type: 'function', stateMutability: 'external', inputs: [{ name: 'spender', type: 'address' }, { name: 'amount', type: 'uint256' }], outputs: [{ name: '', type: 'bool' }] }] as const;
 
   const betAmount = parseUnits('10', 6);
 
-  // Формируем вызовы для транзакции
   const calls = [
     {
       to: USDC_ADDRESS as `0x${string}`,
@@ -52,7 +57,6 @@ export default function Home() {
   return (
     <main style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column', alignItems: 'center', padding: '20px', color: 'white', background: 'radial-gradient(circle at center, #1e293b 0%, #020617 100%)', fontFamily: 'sans-serif' }}>
       
-      {/* Секция кошелька */}
       <div style={{ width: '100%', display: 'flex', justifyContent: 'flex-end', marginBottom: '50px' }}>
         <Wallet>
           <ConnectWallet>
@@ -75,15 +79,11 @@ export default function Home() {
         <div style={{ width: '100%', maxWidth: '400px', padding: '40px', background: 'rgba(15, 23, 42, 0.8)', borderRadius: '32px', border: '1px solid #1e293b', textAlign: 'center' }}>
           <h2 style={{ fontSize: '1.5rem', marginBottom: '24px' }}>Duel for 10 USDC</h2>
           
-          {/* 
-              Используем 'as any' для calls, чтобы TypeScript не ругался на readonly.
-              Удаляем style из TransactionButton, используем стандартную кнопку Base.
-          */}
           <Transaction 
             chainId={8453} 
             calls={calls as any}
           >
-            <TransactionButton text="Start Duel" className="bg-blue-600 w-full" />
+            <TransactionButton text="Start Duel" className="w-full bg-blue-600" />
             <TransactionStatus>
               <TransactionStatusLabel />
               <TransactionStatusAction />
