@@ -7,6 +7,7 @@ import { Transaction, TransactionButton, TransactionStatus, TransactionStatusAct
 import { useAccount, useReadContract, useBalance } from 'wagmi';
 import { parseUnits, formatUnits, encodeFunctionData } from 'viem';
 
+// ТВОЙ НОВЫЙ КОНТРАКТ
 const CONTRACT_ADDRESS = '0xf7d84A56d6fAf43521C017066BD1F1703a43fC2C' as `0x${string}`;
 const USDC_ADDRESS = '0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913' as `0x${string}`;
 
@@ -32,10 +33,13 @@ export default function Home() {
     functionName: 'getOpenGames',
   });
 
-  // Безопасно извлекаем данные из лобби для TypeScript
-  const activeIds = lobbyData?.[0] || [];
-  const activePlayers = lobbyData?.[1] || [];
-  const activeAmounts = lobbyData?.[2] || [];
+  // ЖЕСТКОЕ ПРИВЕДЕНИЕ ТИПА ДЛЯ ТАЙПСКРИПТА
+  // Мы говорим ему: "Верь нам, там придет массив из трех подмассивов"
+  const lobby = lobbyData as unknown as [bigint[], `0x${string}`[], bigint[]] | undefined;
+  
+  const activeIds = lobby?.[0] || [];
+  const activePlayers = lobby?.[1] || [];
+  const activeAmounts = lobby?.[2] || [];
 
   const createCalls = useMemo(() => {
     const bet = parseUnits(amount.replace(',', '.'), 6);
