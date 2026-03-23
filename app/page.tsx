@@ -1,7 +1,15 @@
 'use client';
 
-import { Wallet, ConnectWallet, WalletDropdown, WalletDropdownDisconnect } from '@coinbase/onchainkit/wallet';
-import { Identity, Avatar, Name, Address } from '@coinbase/onchainkit/identity';
+import { 
+  Wallet, 
+  ConnectWallet, 
+  WalletDropdown, 
+  WalletDropdownDisconnect,
+  Identity,
+  Avatar,
+  Name,
+  Address 
+} from '@coinbase/onchainkit';
 import { useAccount } from 'wagmi';
 
 export default function Home() {
