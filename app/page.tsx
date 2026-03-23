@@ -5,12 +5,14 @@ import {
   Wallet, 
   ConnectWallet, 
   WalletDropdown, 
-  WalletDropdownDisconnect,
-  Identity,
-  Avatar,
-  Name,
-  Address 
+  WalletDropdownDisconnect 
 } from '@coinbase/onchainkit/wallet';
+import { 
+  Identity, 
+  Avatar, 
+  Name, 
+  Address 
+} from '@coinbase/onchainkit/identity';
 import { 
   Transaction, 
   TransactionButton, 
@@ -21,12 +23,12 @@ import {
 import { useAccount, useReadContract } from 'wagmi';
 import { parseUnits } from 'viem';
 
+// ТВОИ ДАННЫЕ
 const CONTRACT_ADDRESS = '0x97120190283736475f10105364b03996C2795EFC' as `0x${string}`;
 const USDC_ADDRESS = '0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913' as `0x${string}`;
 
 const abi = [
   { name: 'createGame', type: 'function', stateMutability: 'external', inputs: [{ name: '_amount', type: 'uint256' }], outputs: [] },
-  { name: 'joinGame', type: 'function', stateMutability: 'external', inputs: [{ name: '_gameId', type: 'uint256' }], outputs: [] },
   { name: 'nextGameId', type: 'function', stateMutability: 'view', inputs: [], outputs: [{ type: 'uint256' }] }
 ] as const;
 
@@ -34,16 +36,15 @@ const usdcAbi = [{ name: 'approve', type: 'function', stateMutability: 'external
 
 export default function Home() {
   const { isConnected } = useAccount();
-  const [amount, setAmount] = useState('10'); // Сумма по умолчанию
+  const [amount, setAmount] = useState('0.1');
 
-  // Читаем ID следующей игры, чтобы понимать, сколько всего игр создано
+  // Читаем сколько игр создано
   const { data: totalGames } = useReadContract({
     address: CONTRACT_ADDRESS,
     abi: abi,
     functionName: 'nextGameId',
   });
 
-  // Сумма с учетом 6 знаков USDC
   const betAmountFormatted = parseUnits(amount || '0', 6);
 
   const createCalls = [
@@ -68,31 +69,36 @@ export default function Home() {
       <div style={{ width: '100%', display: 'flex', justifyContent: 'flex-end', marginBottom: '30px' }}>
         <Wallet>
           <ConnectWallet>
-            <Avatar className="h-6 w-6" /><Name />
+            <Avatar className="h-6 w-6" />
+            <Name />
           </ConnectWallet>
           <WalletDropdown>
-            <Identity className="px-4 pt-3 pb-2" hasCopyAddressOnClick><Avatar /><Name /><Address /></Identity>
+            <Identity className="px-4 pt-3 pb-2" hasCopyAddressOnClick>
+              <Avatar /><Name /><Address />
+            </Identity>
             <WalletDropdownDisconnect />
           </WalletDropdown>
         </Wallet>
       </div>
 
       <h1 style={{ fontSize: '3rem', color: '#3b82f6', fontWeight: 'bold', marginBottom: '10px' }}>TokenFlip</h1>
+      <p style={{ color: '#94a3b8', marginBottom: '30px' }}>Duel for USDC on Base</p>
       
       {isConnected ? (
-        <div style={{ width: '100%', maxWidth: '500px' }}>
+        <div style={{ width: '100%', maxWidth: '450px' }}>
           
-          {/* Создание игры */}
           <div style={{ padding: '30px', background: 'rgba(15, 23, 42, 0.8)', borderRadius: '24px', border: '1px solid #1e293b', textAlign: 'center', marginBottom: '30px' }}>
-            <h2 style={{ marginBottom: '20px' }}>Create a Duel</h2>
+            <h2 style={{ marginBottom: '20px', fontSize: '1.2rem' }}>Create a Duel</h2>
             
-            <div style={{ marginBottom: '20px' }}>
-              <label style={{ display: 'block', color: '#94a3b8', marginBottom: '10px' }}>Bet Amount (USDC)</label>
+            <div style={{ marginBottom: '25px' }}>
+              <label style={{ display: 'block', color: '#94a3b8', marginBottom: '10px', fontSize: '0.9rem' }}>Bet Amount (USDC)</label>
               <input 
                 type="number" 
+                step="0.1"
+                min="0.1"
                 value={amount}
                 onChange={(e) => setAmount(e.target.value)}
-                style={{ width: '100%', padding: '12px', borderRadius: '12px', background: '#020617', border: '1px solid #3b82f6', color: 'white', fontSize: '1.2rem', textAlign: 'center' }}
+                style={{ width: '100%', padding: '15px', borderRadius: '15px', background: '#020617', border: '2px solid #3b82f6', color: 'white', fontSize: '1.5rem', textAlign: 'center' }}
               />
             </div>
 
@@ -102,26 +108,17 @@ export default function Home() {
             </Transaction>
           </div>
 
-          {/* Лобби (Список игр) */}
-          <div style={{ padding: '30px', background: 'rgba(15, 23, 42, 0.5)', borderRadius: '24px', border: '1px solid #1e293b' }}>
-            <h2 style={{ marginBottom: '20px', fontSize: '1.2rem' }}>Active Duels</h2>
-            {totalGames ? (
-              <p style={{ color: '#94a3b8' }}>Total games created: {totalGames.toString()}</p>
-            ) : (
-              <p style={{ color: '#64748b' }}>No active duels found...</p>
-            )}
-            
-            {/* Тут будет список игр (Mapping) */}
-            <div style={{ marginTop: '20px', fontSize: '0.9rem', color: '#60a5fa', textAlign: 'center', border: '1px dashed #1e293b', padding: '20px', borderRadius: '15px' }}>
-              Lobby updates coming soon... <br/>
-              Check your game on Basescan!
-            </div>
+          <div style={{ padding: '25px', background: 'rgba(15, 23, 42, 0.5)', borderRadius: '24px', border: '1px solid #1e293b', textAlign: 'center' }}>
+            <h3 style={{ fontSize: '1rem', color: '#60a5fa', marginBottom: '10px' }}>Global Stats</h3>
+            <p style={{ fontSize: '1.2rem' }}>
+              {totalGames !== undefined ? `Total Games: ${totalGames.toString()}` : 'Loading...'}
+            </p>
           </div>
 
         </div>
       ) : (
         <div style={{ textAlign: 'center', marginTop: '100px' }}>
-          <p style={{ fontSize: '1.2rem', color: '#60a5fa' }}>Connect your Smart Wallet to Flip tokens</p>
+          <p style={{ fontSize: '1.2rem', color: '#60a5fa' }}>Connect your Wallet to play</p>
         </div>
       )}
     </main>
