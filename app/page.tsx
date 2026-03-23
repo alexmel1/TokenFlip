@@ -7,7 +7,6 @@ import { Transaction, TransactionButton, TransactionStatus, TransactionStatusAct
 import { useAccount, useReadContract, useBalance } from 'wagmi';
 import { parseUnits, formatUnits, encodeFunctionData } from 'viem';
 
-// ТВОЙ НОВЫЙ КОНТРАКТ
 const CONTRACT_ADDRESS = '0xf7d84A56d6fAf43521C017066BD1F1703a43fC2C' as `0x${string}`;
 const USDC_ADDRESS = '0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913' as `0x${string}`;
 
@@ -21,7 +20,7 @@ const usdcAbi = [{ name: 'approve', type: 'function', stateMutability: 'external
 
 export default function Home() {
   const { isConnected, address } = useAccount();
-  const [amount, setAmount] = useState('0.1');
+  const [amount, setAmount] = useState('0.01');
 
   const { data: ethBalance } = useBalance({ address });
   const { data: usdcBalance } = useBalance({ address, token: USDC_ADDRESS });
@@ -32,9 +31,7 @@ export default function Home() {
     functionName: 'getOpenGames',
   });
 
-  // Приведение типа для лобби
   const lobby = lobbyData as unknown as [bigint[], `0x${string}`[], bigint[]] | undefined;
-  
   const activeIds = lobby?.[0] || [];
   const activePlayers = lobby?.[1] || [];
   const activeAmounts = lobby?.[2] || [];
@@ -63,41 +60,49 @@ export default function Home() {
       {isConnected ? (
         <div style={{ width: '100%', maxWidth: '500px', marginTop: '30px' }}>
           
-          {/* Создание игры */}
           <div style={{ padding: '25px', background: 'rgba(15, 23, 42, 0.8)', borderRadius: '24px', border: '1px solid #1e293b', marginBottom: '30px', textAlign: 'center' }}>
             <h2 style={{ marginBottom: '15px', fontSize: '1.1rem' }}>Create Duel</h2>
-            <input type="text" value={amount} onChange={(e) => setAmount(e.target.value)} style={{ width: '80%', padding: '10px', borderRadius: '10px', background: '#020617', border: '1px solid #3b82f6', color: 'white', marginBottom: '15px', textAlign: 'center' }} />
+            <input 
+                type="text" 
+                value={amount} 
+                onChange={(e) => setAmount(e.target.value)} 
+                style={{ width: '80%', padding: '10px', borderRadius: '10px', background: '#020617', border: '1px solid #3b82f6', color: 'white', marginBottom: '15px', textAlign: 'center' }} 
+            />
             <Transaction chainId={8453} calls={createCalls as any} onSuccess={() => refreshLobby()}>
-              <TransactionButton text={`Flip for ${amount} USDC`} className="bg-blue-600 w-full" />
+              <TransactionButton text={`Flip for ${amount} USDC`} className="bg-blue-600 w-full rounded-xl font-bold" />
               <TransactionStatus><TransactionStatusLabel /><TransactionStatusAction /></TransactionStatus>
             </Transaction>
           </div>
 
-          {/* ЛОББИ */}
           <div style={{ padding: '20px', background: 'rgba(15, 23, 42, 0.5)', borderRadius: '24px', border: '1px solid #1e293b' }}>
             <h2 style={{ fontSize: '1.2rem', marginBottom: '15px' }}>Active Duels</h2>
             
             {activeIds.length > 0 ? (
-              activeIds.map((id, index) => (
-                <div key={id.toString()} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '15px', background: '#0f172a', borderRadius: '12px', marginBottom: '10px', border: '1px solid #1e293b' }}>
-                  <div>
-                    <div style={{ fontSize: '0.9rem', fontWeight: 'bold' }}>{formatUnits(activeAmounts[index], 6)} USDC</div>
-                    <div style={{ fontSize: '0.7rem', color: '#64748b' }}>by {activePlayers[index].slice(0, 6)}...</div>
-                  </div>
-                  
-                  <Transaction 
-                    chainId={8453} 
-                    calls={[
-                      { to: USDC_ADDRESS, data: encodeFunctionData({ abi: usdcAbi, functionName: 'approve', args: [CONTRACT_ADDRESS, activeAmounts[index]] }) },
-                      { to: CONTRACT_ADDRESS, data: encodeFunctionData({ abi: abi, functionName: 'joinGame', args: [id] }) }
-                    ] as any}
-                    onSuccess={() => refreshLobby()}
-                  >
-                    {/* ТУТ ИСПРАВЛЕНО: УБРАЛИ style, ОСТАВИЛИ className */}
-                    <TransactionButton text="Join" className="bg-green-600" />
-                  </Transaction>
-                </div>
-              ))
+              [...activeIds].reverse().map((id, index) => {
+                const originalIndex = activeIds.length - 1 - index;
+                return (
+                    <div key={id.toString()} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '12px 20px', background: '#0f172a', borderRadius: '16px', marginBottom: '10px', border: '1px solid #1e293b' }}>
+                        <div>
+                            <div style={{ fontSize: '1.1rem', fontWeight: 'bold', color: '#10b981' }}>{formatUnits(activeAmounts[originalIndex], 6)} USDC</div>
+                            <div style={{ fontSize: '0.75rem', color: '#64748b' }}>by {activePlayers[originalIndex].slice(0, 6)}...</div>
+                        </div>
+                        
+                        {/* Ограничиваем ширину контейнера транзакции, чтобы кнопка была маленькой */}
+                        <div style={{ width: '100px' }}>
+                          <Transaction 
+                              chainId={8453} 
+                              calls={[
+                                  { to: USDC_ADDRESS, data: encodeFunctionData({ abi: usdcAbi, functionName: 'approve', args: [CONTRACT_ADDRESS, activeAmounts[originalIndex]] }) },
+                                  { to: CONTRACT_ADDRESS, data: encodeFunctionData({ abi: abi, functionName: 'joinGame', args: [id] }) }
+                              ] as any}
+                              onSuccess={() => refreshLobby()}
+                          >
+                              <TransactionButton text="Join" className="bg-green-600 !py-2 !px-4 !text-sm !min-w-0" />
+                          </Transaction>
+                        </div>
+                    </div>
+                );
+              })
             ) : (
               <p style={{ color: '#64748b', textAlign: 'center', fontSize: '0.9rem' }}>No active duels found. Create one above!</p>
             )}
