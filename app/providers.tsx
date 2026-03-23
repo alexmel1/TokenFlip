@@ -12,7 +12,7 @@ const wagmiConfig = createConfig({
   connectors: [
     coinbaseWallet({ 
       appName: 'TokenFlip',
-      preference: 'smartWalletOnly'
+      preference: 'smartWalletOnly' // Только Smart Wallet для Base
     })
   ],
   transports: { [base.id]: http() },
