@@ -22,33 +22,32 @@ import {
 import { useAccount } from 'wagmi';
 import { parseUnits } from 'viem';
 
-// ТВОИ ДАННЫЕ
-const CONTRACT_ADDRESS = '0x97120190283736475f10105364b03996C2795EFC';
-const USDC_ADDRESS = '0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913';
+// Добавляем 'as const', чтобы TypeScript понимал, что это 0x-адреса
+const CONTRACT_ADDRESS = '0x97120190283736475f10105364b03996C2795EFC' as const;
+const USDC_ADDRESS = '0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913' as const;
 
-// ABI для функций
-const abi = [{ name: 'createGame', type: 'function', stateMutability: 'external', inputs: [{ name: '_amount', type: 'uint256' }], outputs: [] }];
-const usdcAbi = [{ name: 'approve', type: 'function', stateMutability: 'external', inputs: [{ name: 'spender', type: 'address' }, { name: 'amount', type: 'uint256' }], outputs: [{ name: '', type: 'bool' }] }];
+const abi = [{ name: 'createGame', type: 'function', stateMutability: 'external', inputs: [{ name: '_amount', type: 'uint256' }], outputs: [] }] as const;
+const usdcAbi = [{ name: 'approve', type: 'function', stateMutability: 'external', inputs: [{ name: 'spender', type: 'address' }, { name: 'amount', type: 'uint256' }], outputs: [{ name: '', type: 'bool' }] }] as const;
 
 export default function Home() {
   const { isConnected } = useAccount();
   const betAmount = parseUnits('10', 6);
 
-  // ИЗМЕНЕНИЕ ЗДЕСЬ: address заменен на to
+  // Явно указываем типы для вызовов
   const calls = [
     {
-      to: USDC_ADDRESS,
+      address: USDC_ADDRESS,
       abi: usdcAbi,
       functionName: 'approve',
       args: [CONTRACT_ADDRESS, betAmount],
     },
     {
-      to: CONTRACT_ADDRESS,
+      address: CONTRACT_ADDRESS,
       abi: abi,
       functionName: 'createGame',
       args: [betAmount],
     },
-  ];
+  ] as const;
 
   return (
     <main style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column', alignItems: 'center', padding: '20px', color: 'white', background: 'radial-gradient(circle at center, #1e293b 0%, #020617 100%)', fontFamily: 'sans-serif' }}>
@@ -74,10 +73,10 @@ export default function Home() {
       {isConnected ? (
         <div style={{ width: '100%', maxWidth: '400px', padding: '40px', background: 'rgba(15, 23, 42, 0.8)', borderRadius: '32px', border: '1px solid #1e293b', textAlign: 'center' }}>
           <h2 style={{ fontSize: '1.5rem', marginBottom: '24px' }}>Duel for 10 USDC</h2>
+          
           <Transaction 
             chainId={8453} 
             calls={calls}
-            onSuccess={(receipt) => console.log('Transaction confirmed!', receipt)}
           >
             <TransactionButton text="Start Duel" style={{ width: '100%', padding: '16px', borderRadius: '16px', backgroundColor: '#3b82f6', color: 'white', border: 'none', fontWeight: 'bold', fontSize: '1.1rem', cursor: 'pointer' }} />
             <TransactionStatus>
