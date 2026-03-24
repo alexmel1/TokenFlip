@@ -84,4 +84,55 @@ export default function Home() {
                 }}
               >
                 <TransactionButton text="CREATE ROOM" className="bg-blue-600 w-full rounded-xl py-4 font-black" />
-                <div style={{ fontSize: '10px', marginTop: '10px' }}><TransactionStatus><Transacti
+                <div style={{ fontSize: '10px', marginTop: '10px' }}><TransactionStatus><TransactionStatusLabel /></TransactionStatus></div>
+              </Transaction>
+            </div>
+
+            {/* ЛОББИ */}
+            <div className="card">
+              <h3 style={{ fontSize: '0.75rem', color: '#94a3b8', marginBottom: '15px', textAlign: 'center', fontWeight: '800' }}>ACTIVE DUELS</h3>
+              {activeIds.length > 0 ? (
+                [...activeIds].reverse().map((id, index) => {
+                  const i = activeIds.length - 1 - index;
+                  const duelAmt = activeAmounts[i];
+                  return (
+                    <div key={id.toString()} className="duel-row">
+                      <div>
+                        <div style={{ fontWeight: 'bold', fontSize: '1.1rem' }}>{formatUnits(duelAmt, 6)} <span style={{fontSize: '0.7rem', opacity: 0.5}}>USDC</span></div>
+                        <div style={{ fontSize: '0.6rem', color: '#64748b' }}>by {activePlayers[i].slice(0, 6)}...</div>
+                      </div>
+                      <div style={{ width: '80px' }}>
+                        <Transaction 
+                          chainId={8453} 
+                          calls={[
+                            { to: USDC_ADDRESS, data: encodeFunctionData({ abi: usdcAbi, functionName: 'approve', args: [CONTRACT_ADDRESS, duelAmt] }) },
+                            { to: CONTRACT_ADDRESS, data: encodeFunctionData({ abi, functionName: 'joinGame', args: [id] }) }
+                          ] as any}
+                          onSuccess={() => refreshLobby()}
+                        >
+                          <TransactionButton text="JOIN" className="bg-green-600 !py-1.5 !px-0 !text-[10px] !font-black !min-w-0" />
+                        </Transaction>
+                      </div>
+                    </div>
+                  );
+                })
+              ) : <div style={{ textAlign: 'center', color: '#64748b', fontSize: '0.8rem' }}>No active duels...</div>}
+            </div>
+
+            {/* ИСТОРИЯ */}
+            <div style={{ textAlign: 'center' }}>
+                <a href={`https://basescan.org/address/${address}#tokentxns`} target="_blank" style={{ color: '#3b82f6', textDecoration: 'none', fontSize: '0.8rem', fontWeight: 'bold', opacity: 0.7 }}>
+                   VIEW ALL MY GAMES ON BASESCAN ↗
+                </a>
+            </div>
+          </>
+        ) : (
+          <div style={{ textAlign: 'center', marginTop: '100px' }}>
+            <h1 style={{ color: '#3b82f6', fontWeight: '900' }}>TokenFlip</h1>
+            <p style={{ color: '#94a3b8' }}>Connect Smart Wallet to start</p>
+          </div>
+        )}
+      </div>
+    </main>
+  );
+}
