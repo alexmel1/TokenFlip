@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useMemo, useEffect } from 'react';
+import { useState, useMemo, useEffect, useRef } from 'react';
 import { Wallet, ConnectWallet, WalletDropdown, WalletDropdownDisconnect } from '@coinbase/onchainkit/wallet';
 import { Identity, Avatar, Name, Address } from '@coinbase/onchainkit/identity';
 import { Transaction, TransactionButton, TransactionStatus, TransactionStatusLabel } from '@coinbase/onchainkit/transaction'; 
@@ -21,9 +21,11 @@ const usdcAbi = [{ name: 'approve', type: 'function', stateMutability: 'external
 export default function Home() {
   const { isConnected, address } = useAccount();
   const [amount, setAmount] = useState('0.01');
+  const [gameState, setGameState] = useState<'idle' | 'flipping' | 'result'>('idle');
+  const [winStatus, setWinStatus] = useState<'win' | 'lose' | null>(null);
   const [createTxKey, setCreateTxKey] = useState(0);
 
-  const { data: usdcBalance } = useBalance({ address, token: USDC_ADDRESS });
+  const { data: usdcBalance, refetch: refetchUSDC } = useBalance({ address, token: USDC_ADDRESS });
   const { data: lobbyData, refetch: refreshLobby } = useReadContract({ address: CONTRACT_ADDRESS, abi, functionName: 'getOpenGames' });
 
   const lobby = lobbyData as unknown as [bigint[], `0x${string}`[], bigint[]] | undefined;
@@ -31,11 +33,9 @@ export default function Home() {
   const activePlayers = lobby?.[1] || [];
   const activeAmounts = lobby?.[2] || [];
 
-  // АВТО-ОБНОВЛЕНИЕ ЛОББИ КАЖДЫЕ 5 СЕКУНД
+  // Авто-обновление лобби
   useEffect(() => {
-    const interval = setInterval(() => {
-      refreshLobby();
-    }, 5000);
+    const interval = setInterval(() => refreshLobby(), 5000);
     return () => clearInterval(interval);
   }, [refreshLobby]);
 
@@ -47,15 +47,51 @@ export default function Home() {
     ];
   }, [amount, createTxKey]);
 
+  const handleJoinSuccess = async () => {
+    const oldBalance = usdcBalance?.value || BigInt(0);
+    setGameState('flipping');
+    setWinStatus(null);
+    
+    // Эпичная пауза для анимации и блокчейна
+    setTimeout(async () => {
+      const { data: newB } = await refetchUSDC();
+      const currentBalance = newB?.value || BigInt(0);
+      setWinStatus(currentBalance > oldBalance ? 'win' : 'lose');
+      setGameState('result');
+      refreshLobby();
+    }, 7000);
+  };
+
   return (
     <main style={{ minHeight: '100vh', background: '#020617', color: 'white', fontFamily: 'sans-serif' }}>
       
       <style dangerouslySetInnerHTML={{ __html: `
+        @keyframes verticalFlip { 0% { transform: rotateX(0); } 100% { transform: rotateX(2160deg); } }
+        .overlay { position: fixed; inset: 0; background: rgba(2,6,23,0.98); z-index: 1000; display: flex; flex-direction: column; align-items: center; justify-content: center; backdrop-filter: blur(15px); padding: 20px; }
+        .coin-css { width: 130px; height: 130px; border-radius: 50%; background: radial-gradient(circle, #3b82f6 0%, #1e3a8a 100%); border: 8px solid #60a5fa; display: flex; align-items: center; justify-content: center; box-shadow: inset 0 0 20px rgba(0,0,0,0.5), 0 0 40px rgba(59, 130, 246, 0.4); font-size: 3.5rem; font-weight: 900; transition: all 0.6s; }
+        .flipping-active { animation: verticalFlip 6s cubic-bezier(0.1, 0, 0.1, 1) forwards; }
+        .win-glow { box-shadow: 0 0 80px #10b981; border-color: #10b981; transform: scale(1.1); background: radial-gradient(circle, #10b981 0%, #064e3b 100%); }
+        .lose-glow { filter: grayscale(1) brightness(0.4); border-color: #ef4444; transform: scale(0.9); }
         .header { display: flex; justify-content: space-between; align-items: center; padding: 15px 20px; background: #0f172a; border-bottom: 1px solid #1e293b; }
         .balance-hero { font-size: 16px; font-weight: 900; color: #3b82f6; margin-top: 2px; }
-        .card { background: #0f172a; border: 1px solid #1e293b; border-radius: 24px; padding: 25px; margin-bottom: 20px; }
-        .duel-row { display: flex; justify-content: space-between; align-items: center; padding: 12px 16px; background: #1e293b; border-radius: 16px; margin-bottom: 8px; border: 1px solid rgba(59, 130, 246, 0.1); }
       `}} />
+
+      {/* OVERLAY С АНИМАЦИЕЙ */}
+      {gameState !== 'idle' && (
+        <div className="overlay">
+          <div className={`coin-css ${gameState === 'flipping' ? 'flipping-active' : ''} ${winStatus === 'win' ? 'win-glow' : winStatus === 'lose' ? 'lose-glow' : ''}`}>$</div>
+          <h2 style={{ marginTop: '40px', fontSize: '2.5rem', fontWeight: '900', color: winStatus === 'win' ? '#10b981' : winStatus === 'lose' ? '#ef4444' : '#3b82f6' }}>
+            {gameState === 'flipping' ? 'BETTING...' : winStatus === 'win' ? 'YOU WON!' : 'BET LOST'}
+          </h2>
+          {gameState === 'result' && (
+            <button onClick={() => setGameState('idle')} style={{ marginTop: '30px', background: '#3b82f6', color: 'white', border: 'none', padding: '15px 60px', borderRadius: '15px', fontWeight: '900', cursor: 'pointer' }}>OK</button>
+          )}
+          {/* Кнопка на случай зависания */}
+          {gameState === 'flipping' && (
+            <button onClick={() => setGameState('idle')} style={{ marginTop: '80px', opacity: 0.2, background: 'none', color: 'white', border: 'none', fontSize: '10px' }}>Cancel Wait</button>
+          )}
+        </div>
+      )}
 
       {/* ШАПКА */}
       <nav className="header">
@@ -66,64 +102,53 @@ export default function Home() {
         </div>
       </nav>
 
-      <div style={{ maxWidth: '420px', margin: '20px auto', padding: '0 20px' }}>
-        
+      <div style={{ maxWidth: '400px', margin: '30px auto', padding: '0 20px' }}>
         {isConnected ? (
           <>
-            {/* БЛОК СОЗДАНИЯ */}
-            <div className="card" style={{ textAlign: 'center' }}>
+            {/* СОЗДАНИЕ */}
+            <div style={{ background: '#0f172a', padding: '30px', borderRadius: '24px', border: '1px solid #1e293b', textAlign: 'center', marginBottom: '20px' }}>
               <input type="text" value={amount} onChange={(e) => setAmount(e.target.value)} style={{ width: '100%', background: 'transparent', border: 'none', color: 'white', fontSize: '3rem', textAlign: 'center', fontWeight: '900', outline: 'none' }} />
-              <div style={{ color: '#3b82f6', fontSize: '0.8rem', marginBottom: '20px', fontWeight: 'bold' }}>USDC BET</div>
-              
-              <Transaction 
-                key={createTxKey} 
-                chainId={8453} 
-                calls={createCalls as any} 
-                onSuccess={() => {
-                  setTimeout(() => { refreshLobby(); setCreateTxKey(p => p + 1); }, 3000);
-                }}
-              >
+              <div style={{ color: '#3b82f6', fontSize: '0.8rem', marginBottom: '20px' }}>USDC BET</div>
+              <Transaction key={createTxKey} chainId={8453} calls={createCalls as any} onSuccess={() => { refreshLobby(); setTimeout(() => setCreateTxKey(p => p + 1), 2000); }}>
                 <TransactionButton text="CREATE ROOM" className="bg-blue-600 w-full rounded-xl py-4 font-black" />
                 <div style={{ fontSize: '10px', marginTop: '10px' }}><TransactionStatus><TransactionStatusLabel /></TransactionStatus></div>
               </Transaction>
             </div>
 
             {/* ЛОББИ */}
-            <div className="card">
+            <div style={{ background: '#0f172a', padding: '15px', borderRadius: '24px', border: '1px solid #1e293b', marginBottom: '20px' }}>
               <h3 style={{ fontSize: '0.75rem', color: '#94a3b8', marginBottom: '15px', textAlign: 'center', fontWeight: '800' }}>ACTIVE DUELS</h3>
               {activeIds.length > 0 ? (
                 [...activeIds].reverse().map((id, index) => {
                   const i = activeIds.length - 1 - index;
+                  const player = activePlayers[i];
                   const duelAmt = activeAmounts[i];
                   return (
-                    <div key={id.toString()} className="duel-row">
+                    <div key={id.toString()} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '12px 16px', background: '#1e293b', borderRadius: '16px', marginBottom: '8px', border: '1px solid rgba(59, 130, 246, 0.05)' }}>
                       <div>
-                        <div style={{ fontWeight: 'bold', fontSize: '1.1rem' }}>{formatUnits(duelAmt, 6)} <span style={{fontSize: '0.7rem', opacity: 0.5}}>USDC</span></div>
-                        <div style={{ fontSize: '0.6rem', color: '#64748b' }}>by {activePlayers[i].slice(0, 6)}...</div>
+                        <div style={{ fontWeight: 'bold', fontSize: '1.1rem' }}>{formatUnits(duelAmt, 6)} <span style={{fontSize: '0.7rem', opacity: 0.6}}>USDC</span></div>
+                        <div style={{ fontSize: '0.6rem', color: '#64748b' }}>by {player.slice(0, 6)}...{player.slice(-4)}</div>
                       </div>
-                      <div style={{ width: '80px' }}>
+                      <div style={{ width: '70px' }}>
                         <Transaction 
                           chainId={8453} 
                           calls={[
                             { to: USDC_ADDRESS, data: encodeFunctionData({ abi: usdcAbi, functionName: 'approve', args: [CONTRACT_ADDRESS, duelAmt] }) },
-                            { to: CONTRACT_ADDRESS, data: encodeFunctionData({ abi, functionName: 'joinGame', args: [id] }) }
-                          ] as any}
-                          onSuccess={() => refreshLobby()}
+                            { to: CONTRACT_ADDRESS, data: encodeFunctionData({ abi: abi, functionName: 'joinGame', args: [id] }) }
+                          ] as any} 
+                          onSuccess={handleJoinSuccess}
                         >
-                          <TransactionButton text="JOIN" className="bg-green-600 !py-1.5 !px-0 !text-[10px] !font-black !min-w-0" />
+                          <TransactionButton text="JOIN" className="bg-green-600 !py-1.5 !px-0 !text-[10px] !font-black !min-w-0 !h-8" />
                         </Transaction>
                       </div>
                     </div>
                   );
                 })
-              ) : <div style={{ textAlign: 'center', color: '#64748b', fontSize: '0.8rem' }}>No active duels...</div>}
+              ) : <div style={{ textAlign: 'center', color: '#64748b', fontSize: '0.8rem', padding: '10px' }}>No active duels</div>}
             </div>
 
-            {/* ИСТОРИЯ */}
             <div style={{ textAlign: 'center' }}>
-                <a href={`https://basescan.org/address/${address}#tokentxns`} target="_blank" style={{ color: '#3b82f6', textDecoration: 'none', fontSize: '0.8rem', fontWeight: 'bold', opacity: 0.7 }}>
-                   VIEW ALL MY GAMES ON BASESCAN ↗
-                </a>
+                <a href={`https://basescan.org/address/${address}#tokentxns`} target="_blank" style={{ color: '#3b82f6', textDecoration: 'none', fontSize: '0.7rem', opacity: 0.6 }}>Check History on Basescan ↗</a>
             </div>
           </>
         ) : (
