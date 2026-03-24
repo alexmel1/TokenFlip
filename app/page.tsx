@@ -25,8 +25,6 @@ export default function Home() {
   const [winStatus, setWinStatus] = useState<'win' | 'lose' | null>(null);
   const [history, setHistory] = useState<any[]>([]);
   const [createTxKey, setCreateTxKey] = useState(0);
-  
-  // Реф для предотвращения двойного срабатывания
   const isProcessingFlip = useRef(false);
 
   const { data: usdcBalance, refetch: refetchUSDC } = useBalance({ address, token: USDC_ADDRESS });
@@ -38,7 +36,7 @@ export default function Home() {
   const activeAmounts = lobby?.[2] || [];
 
   useEffect(() => {
-    const saved = localStorage.getItem('flip_history_final');
+    const saved = localStorage.getItem('flip_history_vfinal');
     if (saved) setHistory(JSON.parse(saved));
   }, []);
 
@@ -51,7 +49,6 @@ export default function Home() {
   }, [amount, createTxKey]);
 
   const handleJoinSuccess = async () => {
-    // Если анимация уже идет, игнорируем повторный вызов
     if (isProcessingFlip.current) return;
     isProcessingFlip.current = true;
 
@@ -59,30 +56,22 @@ export default function Home() {
     setGameState('flipping');
     setWinStatus(null);
     
-    // Имитируем бросок 7 секунд
     setTimeout(async () => {
       const { data: newB } = await refetchUSDC();
       const currentBalance = newB?.value || BigInt(0);
-      
       const isWin = currentBalance > oldBalance;
+      
       setWinStatus(isWin ? 'win' : 'lose');
       setGameState('result');
 
       const newEntry = { status: isWin ? 'WIN' : 'LOSE', amount, id: Date.now() };
       const newHistory = [newEntry, ...history].slice(0, 10);
       setHistory(newHistory);
-      localStorage.setItem('flip_history_final', JSON.stringify(newHistory));
+      localStorage.setItem('flip_history_vfinal', JSON.stringify(newHistory));
       
       refreshLobby();
-      // Разблокируем возможность следующего броска через паузу
       setTimeout(() => { isProcessingFlip.current = false; }, 1000);
-    }, 7000);
-  };
-
-  const closeResult = () => {
-    setGameState('idle');
-    setWinStatus(null);
-    isProcessingFlip.current = false;
+    }, 6000);
   };
 
   return (
@@ -91,32 +80,47 @@ export default function Home() {
       <style dangerouslySetInnerHTML={{ __html: `
         @keyframes verticalFlip { 0% { transform: rotateX(0); } 100% { transform: rotateX(2160deg); } }
         .overlay { position: fixed; inset: 0; background: rgba(2,6,23,0.98); z-index: 1000; display: flex; flex-direction: column; align-items: center; justify-content: center; backdrop-filter: blur(15px); padding: 20px; }
-        .coin-spin { width: 160px; height: 160px; border-radius: 50%; object-fit: contain; }
+        
+        /* СТИЛИ CSS МОНЕТКИ */
+        .coin-css { 
+            width: 160px; height: 160px; border-radius: 50%; 
+            background: radial-gradient(circle, #3b82f6 0%, #1e3a8a 100%);
+            border: 8px solid #60a5fa;
+            display: flex; align-items: center; justify-content: center;
+            box-shadow: inset 0 0 20px rgba(0,0,0,0.5), 0 0 30px rgba(59, 130, 246, 0.4);
+            font-size: 5rem; font-weight: 900; color: white;
+            text-shadow: 2px 2px 10px rgba(0,0,0,0.5);
+            transition: all 0.6s;
+        }
         .flipping-active { animation: verticalFlip 6s cubic-bezier(0.1, 0, 0.1, 1) forwards; }
-        .win-glow { box-shadow: 0 0 80px #10b981; border: 6px solid #10b981; transform: scale(1.1); filter: none !important; }
-        .lose-glow { filter: grayscale(1) brightness(0.4); border: 6px solid #ef4444; transform: scale(0.9); }
+        .win-glow { box-shadow: 0 0 80px #10b981; border-color: #10b981; transform: scale(1.1); background: radial-gradient(circle, #10b981 0%, #064e3b 100%); }
+        .lose-glow { filter: grayscale(1) brightness(0.4); border-color: #ef4444; transform: scale(0.9); }
+        
         .header { display: flex; justify-content: space-between; align-items: center; padding: 15px 20px; background: #0f172a; border-bottom: 1px solid #1e293b; }
-        .balance-hero { font-size: 16px; font-weight: 900; color: #3b82f6; margin-top: 2px; }
+        .balance-hero { font-size: 16px; font-weight: 900; color: #3b82f6; }
       `}} />
 
-      {/* ЭКРАН РЕЗУЛЬТАТА */}
+      {/* OVERLAY РЕЗУЛЬТАТА */}
       {gameState !== 'idle' && (
         <div className="overlay">
-          <img src="/coin.png" className={`coin-spin ${gameState === 'flipping' ? 'flipping-active' : ''} ${winStatus === 'win' ? 'win-glow' : winStatus === 'lose' ? 'lose-glow' : ''}`} onError={(e) => { (e.target as any).src = 'https://cryptologos.cc/logos/usd-coin-usdc-logo.png' }} />
+          <div className={`coin-css ${gameState === 'flipping' ? 'flipping-active' : ''} ${winStatus === 'win' ? 'win-glow' : winStatus === 'lose' ? 'lose-glow' : ''}`}>
+            $
+          </div>
           
           {gameState === 'result' ? (
              <>
                <h2 style={{ marginTop: '40px', fontSize: '2.5rem', fontWeight: '900', color: winStatus === 'win' ? '#10b981' : '#ef4444' }}>
                  {winStatus === 'win' ? 'YOU WON!' : 'BET LOST'}
                </h2>
-               <button onClick={closeResult} style={{ marginTop: '30px', background: '#3b82f6', color: 'white', border: 'none', padding: '15px 60px', borderRadius: '15px', fontWeight: '900', cursor: 'pointer' }}>OK</button>
+               <button onClick={() => setGameState('idle')} style={{ marginTop: '30px', background: '#3b82f6', color: 'white', border: 'none', padding: '15px 60px', borderRadius: '15px', fontWeight: '900', cursor: 'pointer' }}>OK</button>
              </>
           ) : (
-            <h2 style={{ marginTop: '40px', fontSize: '2rem', fontWeight: '900', color: '#3b82f6' }}>FLIPPING...</h2>
+            <h2 style={{ marginTop: '40px', fontSize: '2rem', fontWeight: '900', color: '#3b82f6', letterSpacing: '2px' }}>FLIPPING...</h2>
           )}
         </div>
       )}
 
+      {/* ШАПКА */}
       <nav className="header">
         <div style={{ fontWeight: '900', fontSize: '1.4rem', color: '#3b82f6' }}>TokenFlip</div>
         <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end' }}>
@@ -125,7 +129,7 @@ export default function Home() {
         </div>
       </nav>
 
-      <div style={{ maxWidth: '400px', margin: '20px auto', padding: '0 20px' }}>
+      <div style={{ maxWidth: '400px', margin: '30px auto', padding: '0 20px' }}>
         {isConnected ? (
           <>
             <div style={{ background: '#0f172a', padding: '30px', borderRadius: '24px', border: '1px solid #1e293b', textAlign: 'center', marginBottom: '20px' }}>
@@ -143,7 +147,7 @@ export default function Home() {
                   const i = activeIds.length - 1 - index;
                   const duelAmt = activeAmounts[i];
                   return (
-                    <div key={id.toString()} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '14px', background: '#1e293b', borderRadius: '16px', marginBottom: '8px' }}>
+                    <div key={id.toString()} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '12px', background: '#1e293b', borderRadius: '16px', marginBottom: '8px' }}>
                       <div style={{ fontWeight: 'bold', fontSize: '1.1rem' }}>{formatUnits(duelAmt, 6)} <span style={{fontSize: '0.7rem', opacity: 0.5}}>USDC</span></div>
                       <Transaction 
                         chainId={8453} 
@@ -158,7 +162,7 @@ export default function Home() {
                     </div>
                   );
                 })
-              ) : <div style={{ textAlign: 'center', color: '#64748b', fontSize: '0.8rem', padding: '10px' }}>No rooms found</div>}
+              ) : <div style={{ textAlign: 'center', color: '#64748b', fontSize: '0.8rem', padding: '10px' }}>No active duels</div>}
             </div>
 
             <div style={{ background: '#0f172a', padding: '20px', borderRadius: '24px', border: '1px solid #1e293b' }}>
