@@ -40,31 +40,28 @@ export default function Home() {
 
   const lobby = lobbyData as unknown as [bigint[], `0x${string}`[], bigint[]] | undefined;
   
-  // ЗАГРУЗКА ЛОКАЛЬНОЙ ИСТОРИИ
   useEffect(() => {
     if (address) {
-      const saved = localStorage.getItem(`flip_history_v4_${address}`);
+      const saved = localStorage.getItem(`flip_history_v5_${address}`);
       setHistory(saved ? JSON.parse(saved) : []);
     }
   }, [address]);
 
-  // СЛУШАТЕЛЬ СОБЫТИЙ БЛОКЧЕЙНА (Киллер-фича)
+  // СЛУШАТЕЛЬ СОБЫТИЙ: Исправлен BigInt (2n -> BigInt(2))
   useWatchContractEvent({
     address: CONTRACT_ADDRESS,
     abi,
     eventName: 'GameResolved',
     onLogs(logs: any) {
+      if (!address) return;
       const { winner, amount: prizePool } = logs[0].args;
-      const betAmount = formatUnits(prizePool / 2n, 6);
+      const betAmount = formatUnits(prizePool / BigInt(2), 6);
 
-      // Если мы победитель
-      if (winner.toLowerCase() === address?.toLowerCase()) {
-        updateHistory('WIN', betAmount);
+      if (winner.toLowerCase() === address.toLowerCase()) {
+        saveToHistory('WIN', betAmount);
         if (gameState === 'flipping') { setWinStatus('win'); setGameState('result'); }
-      } 
-      // Если мы проиграли (нужно было бы проверять участие в игре, но для начала упростим)
-      else if (gameState === 'flipping') {
-        updateHistory('LOSE', betAmount);
+      } else if (gameState === 'flipping') {
+        saveToHistory('LOSE', betAmount);
         setWinStatus('lose');
         setGameState('result');
       }
@@ -73,11 +70,11 @@ export default function Home() {
     },
   });
 
-  const updateHistory = (status: 'WIN' | 'LOSE', amt: string) => {
+  const saveToHistory = (status: 'WIN' | 'LOSE', amt: string) => {
     setHistory(prev => {
       const newEntry = { status, amount: amt, id: Date.now() };
       const newHistory = [newEntry, ...prev].slice(0, 10);
-      localStorage.setItem(`flip_history_v4_${address}`, JSON.stringify(newHistory));
+      localStorage.setItem(`flip_history_v5_${address}`, JSON.stringify(newHistory));
       return newHistory;
     });
   };
@@ -104,17 +101,18 @@ export default function Home() {
         .balance-hero { font-size: 16px; font-weight: 900; color: #3b82f6; }
       `}} />
 
-      {/* ЭКРАН РЕЗУЛЬТАТА */}
+      {/* РЕЗУЛЬТАТ */}
       {gameState !== 'idle' && (
         <div className="overlay">
           <div className={`coin-css ${gameState === 'flipping' ? 'flipping-active' : ''} ${winStatus === 'win' ? 'win-glow' : winStatus === 'lose' ? 'lose-glow' : ''}`}>$</div>
           <h2 style={{ marginTop: '40px', fontSize: '2.5rem', fontWeight: '900', color: winStatus === 'win' ? '#10b981' : winStatus === 'lose' ? '#ef4444' : '#3b82f6' }}>
-            {gameState === 'flipping' ? 'FLIPPING...' : winStatus === 'win' ? 'YOU WON!' : 'BET LOST'}
+            {gameState === 'flipping' ? 'BETTING...' : winStatus === 'win' ? 'YOU WON!' : 'BET LOST'}
           </h2>
           {gameState === 'result' && <button onClick={() => {setGameState('idle'); setWinStatus(null);}} style={{ marginTop: '30px', background: '#3b82f6', color: 'white', border: 'none', padding: '15px 60px', borderRadius: '15px', fontWeight: '900', cursor: 'pointer' }}>OK</button>}
         </div>
       )}
 
+      {/* ШАПКА */}
       <nav className="header">
         <div style={{ fontWeight: '900', fontSize: '1.4rem', color: '#3b82f6' }}>TokenFlip</div>
         <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end' }}>
@@ -145,7 +143,7 @@ export default function Home() {
                     <div key={id.toString()} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '12px 16px', background: '#1e293b', borderRadius: '16px', marginBottom: '8px' }}>
                       <div>
                         <div style={{ fontWeight: 'bold', fontSize: '1rem' }}>{formatUnits(duelAmt, 6)} <span style={{fontSize: '0.7rem', opacity: 0.6}}>USDC</span></div>
-                        <div style={{ fontSize: '0.6rem', color: '#64748b' }}>by {player.slice(0, 6)}...{player.slice(-4)}</div>
+                        <div style={{ fontSize: '0.6rem', color: '#64748b' }}>by {player.slice(0, 6)}...</div>
                       </div>
                       <div style={{ width: '70px' }}>
                         <Transaction 
