@@ -35,10 +35,13 @@ export default function Home() {
   const activePlayers = lobby?.[1] || [];
   const activeAmounts = lobby?.[2] || [];
 
+  // ЗАГРУЗКА ИСТОРИИ ИМЕННО ДЛЯ ТЕКУЩЕГО АДРЕСА
   useEffect(() => {
-    const saved = localStorage.getItem('flip_history_vfinal');
-    if (saved) setHistory(JSON.parse(saved));
-  }, []);
+    if (address) {
+      const saved = localStorage.getItem(`flip_history_${address}`);
+      setHistory(saved ? JSON.parse(saved) : []);
+    }
+  }, [address]);
 
   const createCalls = useMemo(() => {
     const bet = parseUnits(amount.replace(',', '.'), 6);
@@ -64,10 +67,13 @@ export default function Home() {
       setWinStatus(isWin ? 'win' : 'lose');
       setGameState('result');
 
-      const newEntry = { status: isWin ? 'WIN' : 'LOSE', amount, id: Date.now() };
-      const newHistory = [newEntry, ...history].slice(0, 10);
-      setHistory(newHistory);
-      localStorage.setItem('flip_history_vfinal', JSON.stringify(newHistory));
+      if (address) {
+        const newEntry = { status: isWin ? 'WIN' : 'LOSE', amount, id: Date.now() };
+        const newHistory = [newEntry, ...history].slice(0, 10);
+        setHistory(newHistory);
+        // СОХРАНЯЕМ В ЛОКАЛЬНОЕ ХРАНИЛИЩЕ С КЛЮЧОМ АДРЕСА
+        localStorage.setItem(`flip_history_${address}`, JSON.stringify(newHistory));
+      }
       
       refreshLobby();
       setTimeout(() => { isProcessingFlip.current = false; }, 1000);
@@ -83,7 +89,7 @@ export default function Home() {
         .coin-css { 
             width: 140px; height: 140px; border-radius: 50%; 
             background: radial-gradient(circle, #3b82f6 0%, #1e3a8a 100%);
-            border: 6px solid #60a5fa;
+            border: 8px solid #60a5fa;
             display: flex; align-items: center; justify-content: center;
             box-shadow: inset 0 0 20px rgba(0,0,0,0.5), 0 0 30px rgba(59, 130, 246, 0.4);
             font-size: 4rem; font-weight: 900; color: white;
@@ -125,7 +131,7 @@ export default function Home() {
               </Transaction>
             </div>
 
-            <div style={{ background: '#0f172a', padding: '20px', borderRadius: '24px', border: '1px solid #1e293b', marginBottom: '20px' }}>
+            <div style={{ background: '#0f172a', padding: '15px', borderRadius: '24px', border: '1px solid #1e293b', marginBottom: '20px' }}>
               <h3 style={{ fontSize: '0.75rem', color: '#94a3b8', marginBottom: '15px', textAlign: 'center', fontWeight: '800' }}>ACTIVE DUELS</h3>
               {activeIds.length > 0 ? (
                 [...activeIds].reverse().map((id, index) => {
@@ -141,7 +147,10 @@ export default function Home() {
                       <div style={{ width: '70px' }}>
                         <Transaction 
                           chainId={8453} 
-                          calls={[{ to: USDC_ADDRESS, data: encodeFunctionData({ abi: usdcAbi, functionName: 'approve', args: [CONTRACT_ADDRESS, duelAmt] }) }, { to: CONTRACT_ADDRESS, data: encodeFunctionData({ abi: abi, functionName: 'joinGame', args: [id] }) }] as any} 
+                          calls={[
+                            { to: USDC_ADDRESS, data: encodeFunctionData({ abi: usdcAbi, functionName: 'approve', args: [CONTRACT_ADDRESS, duelAmt] }) },
+                            { to: CONTRACT_ADDRESS, data: encodeFunctionData({ abi: abi, functionName: 'joinGame', args: [id] }) }
+                          ] as any} 
                           onSuccess={handleJoinSuccess}
                         >
                           <TransactionButton text="JOIN" className="bg-green-600 !py-1.5 !px-0 !text-[10px] !font-black !min-w-0 !h-8" />
