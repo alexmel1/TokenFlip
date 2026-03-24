@@ -80,47 +80,32 @@ export default function Home() {
       <style dangerouslySetInnerHTML={{ __html: `
         @keyframes verticalFlip { 0% { transform: rotateX(0); } 100% { transform: rotateX(2160deg); } }
         .overlay { position: fixed; inset: 0; background: rgba(2,6,23,0.98); z-index: 1000; display: flex; flex-direction: column; align-items: center; justify-content: center; backdrop-filter: blur(15px); padding: 20px; }
-        
-        /* СТИЛИ CSS МОНЕТКИ */
         .coin-css { 
-            width: 160px; height: 160px; border-radius: 50%; 
+            width: 140px; height: 140px; border-radius: 50%; 
             background: radial-gradient(circle, #3b82f6 0%, #1e3a8a 100%);
-            border: 8px solid #60a5fa;
+            border: 6px solid #60a5fa;
             display: flex; align-items: center; justify-content: center;
             box-shadow: inset 0 0 20px rgba(0,0,0,0.5), 0 0 30px rgba(59, 130, 246, 0.4);
-            font-size: 5rem; font-weight: 900; color: white;
-            text-shadow: 2px 2px 10px rgba(0,0,0,0.5);
+            font-size: 4rem; font-weight: 900; color: white;
             transition: all 0.6s;
         }
         .flipping-active { animation: verticalFlip 6s cubic-bezier(0.1, 0, 0.1, 1) forwards; }
         .win-glow { box-shadow: 0 0 80px #10b981; border-color: #10b981; transform: scale(1.1); background: radial-gradient(circle, #10b981 0%, #064e3b 100%); }
         .lose-glow { filter: grayscale(1) brightness(0.4); border-color: #ef4444; transform: scale(0.9); }
-        
         .header { display: flex; justify-content: space-between; align-items: center; padding: 15px 20px; background: #0f172a; border-bottom: 1px solid #1e293b; }
         .balance-hero { font-size: 16px; font-weight: 900; color: #3b82f6; }
       `}} />
 
-      {/* OVERLAY РЕЗУЛЬТАТА */}
       {gameState !== 'idle' && (
         <div className="overlay">
-          <div className={`coin-css ${gameState === 'flipping' ? 'flipping-active' : ''} ${winStatus === 'win' ? 'win-glow' : winStatus === 'lose' ? 'lose-glow' : ''}`}>
-            $
-          </div>
-          
-          {gameState === 'result' ? (
-             <>
-               <h2 style={{ marginTop: '40px', fontSize: '2.5rem', fontWeight: '900', color: winStatus === 'win' ? '#10b981' : '#ef4444' }}>
-                 {winStatus === 'win' ? 'YOU WON!' : 'BET LOST'}
-               </h2>
-               <button onClick={() => setGameState('idle')} style={{ marginTop: '30px', background: '#3b82f6', color: 'white', border: 'none', padding: '15px 60px', borderRadius: '15px', fontWeight: '900', cursor: 'pointer' }}>OK</button>
-             </>
-          ) : (
-            <h2 style={{ marginTop: '40px', fontSize: '2rem', fontWeight: '900', color: '#3b82f6', letterSpacing: '2px' }}>FLIPPING...</h2>
-          )}
+          <div className={`coin-css ${gameState === 'flipping' ? 'flipping-active' : ''} ${winStatus === 'win' ? 'win-glow' : winStatus === 'lose' ? 'lose-glow' : ''}`}>$</div>
+          <h2 style={{ marginTop: '40px', fontSize: '2.5rem', fontWeight: '900', color: winStatus === 'win' ? '#10b981' : winStatus === 'lose' ? '#ef4444' : '#3b82f6' }}>
+            {gameState === 'flipping' ? 'FLIPPING...' : winStatus === 'win' ? 'YOU WON!' : 'BET LOST'}
+          </h2>
+          {gameState === 'result' && <button onClick={() => setGameState('idle')} style={{ marginTop: '30px', background: '#3b82f6', color: 'white', border: 'none', padding: '15px 60px', borderRadius: '15px', fontWeight: '900', cursor: 'pointer' }}>OK</button>}
         </div>
       )}
 
-      {/* ШАПКА */}
       <nav className="header">
         <div style={{ fontWeight: '900', fontSize: '1.4rem', color: '#3b82f6' }}>TokenFlip</div>
         <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end' }}>
@@ -140,25 +125,28 @@ export default function Home() {
               </Transaction>
             </div>
 
-            <div style={{ background: '#0f172a', padding: '15px', borderRadius: '24px', border: '1px solid #1e293b', marginBottom: '20px' }}>
+            <div style={{ background: '#0f172a', padding: '20px', borderRadius: '24px', border: '1px solid #1e293b', marginBottom: '20px' }}>
               <h3 style={{ fontSize: '0.75rem', color: '#94a3b8', marginBottom: '15px', textAlign: 'center', fontWeight: '800' }}>ACTIVE DUELS</h3>
               {activeIds.length > 0 ? (
                 [...activeIds].reverse().map((id, index) => {
                   const i = activeIds.length - 1 - index;
+                  const player = activePlayers[i];
                   const duelAmt = activeAmounts[i];
                   return (
-                    <div key={id.toString()} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '12px', background: '#1e293b', borderRadius: '16px', marginBottom: '8px' }}>
-                      <div style={{ fontWeight: 'bold', fontSize: '1.1rem' }}>{formatUnits(duelAmt, 6)} <span style={{fontSize: '0.7rem', opacity: 0.5}}>USDC</span></div>
-                      <Transaction 
-                        chainId={8453} 
-                        calls={[
-                          { to: USDC_ADDRESS, data: encodeFunctionData({ abi: usdcAbi, functionName: 'approve', args: [CONTRACT_ADDRESS, duelAmt] }) },
-                          { to: CONTRACT_ADDRESS, data: encodeFunctionData({ abi: abi, functionName: 'joinGame', args: [id] }) }
-                        ] as any} 
-                        onSuccess={handleJoinSuccess}
-                      >
-                        <TransactionButton text="JOIN" className="bg-green-600 !py-2 !px-5 !text-xs !font-black" />
-                      </Transaction>
+                    <div key={id.toString()} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '12px 16px', background: '#1e293b', borderRadius: '16px', marginBottom: '8px', border: '1px solid rgba(59, 130, 246, 0.05)' }}>
+                      <div>
+                        <div style={{ fontWeight: 'bold', fontSize: '1rem' }}>{formatUnits(duelAmt, 6)} <span style={{fontSize: '0.7rem', opacity: 0.6}}>USDC</span></div>
+                        <div style={{ fontSize: '0.6rem', color: '#64748b' }}>by {player.slice(0, 6)}...{player.slice(-4)}</div>
+                      </div>
+                      <div style={{ width: '70px' }}>
+                        <Transaction 
+                          chainId={8453} 
+                          calls={[{ to: USDC_ADDRESS, data: encodeFunctionData({ abi: usdcAbi, functionName: 'approve', args: [CONTRACT_ADDRESS, duelAmt] }) }, { to: CONTRACT_ADDRESS, data: encodeFunctionData({ abi: abi, functionName: 'joinGame', args: [id] }) }] as any} 
+                          onSuccess={handleJoinSuccess}
+                        >
+                          <TransactionButton text="JOIN" className="bg-green-600 !py-1.5 !px-0 !text-[10px] !font-black !min-w-0 !h-8" />
+                        </Transaction>
+                      </div>
                     </div>
                   );
                 })
@@ -168,7 +156,7 @@ export default function Home() {
             <div style={{ background: '#0f172a', padding: '20px', borderRadius: '24px', border: '1px solid #1e293b' }}>
               <h3 style={{ fontSize: '0.75rem', color: '#94a3b8', marginBottom: '15px', fontWeight: '800' }}>MY RESULTS</h3>
               {history.length > 0 ? history.map((item, idx) => (
-                <div key={item.id || idx} style={{ display: 'flex', justifyContent: 'space-between', padding: '10px 0', borderBottom: '1px solid #1e293b' }}>
+                <div key={idx} style={{ display: 'flex', justifyContent: 'space-between', padding: '10px 0', borderBottom: '1px solid #1e293b' }}>
                   <span style={{ fontWeight: '900', color: item.status === 'WIN' ? '#10b981' : '#ef4444' }}>{item.status}</span>
                   <span style={{ fontWeight: 'bold' }}>{item.amount} USDC</span>
                 </div>
