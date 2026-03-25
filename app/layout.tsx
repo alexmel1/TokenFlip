@@ -1,15 +1,8 @@
-// app/layout.tsx
-
 import type { Metadata } from 'next';
-import { Inter } from 'next/font/google'; // Убери, если Inter не используется
-import './globals.css';
-import { Providers } from './providers'; // Это твой Providers компонент
-
-// const inter = Inter({ subsets: ['latin'] }); // Убери, если Inter не используется
+import { Providers } from './providers';
 
 export const metadata: Metadata = {
-  title: 'TokenFlip', // Или как ты назвал свой проект
-  // description: 'A simple coin-flipping game on Base', // Можешь добавить описание
+  title: 'TokenFlip', 
   other: {
     'base:app:id': '0xac0107e0e84b70e0a0a5d2eb3d0f0eb9',
   },
