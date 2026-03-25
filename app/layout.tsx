@@ -1,7 +1,11 @@
 // app/layout.tsx
 
 import type { Metadata } from 'next';
+// import { Inter } from 'next/font/google'; // Удали или закомментируй
+// import './globals.css'; // <--- Убедись, что этой строки НЕТ!
 import { Providers } from './providers';
+
+// const inter = Inter({ subsets: ['latin'] }); // Удали или закомментируй
 
 export const metadata: Metadata = {
   title: 'TokenFlip',
