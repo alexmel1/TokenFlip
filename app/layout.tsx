@@ -2,7 +2,7 @@
 
 import type { Metadata } from 'next';
 // import { Inter } from 'next/font/google'; // Удали или закомментируй
-// import './globals.css'; // <--- Убедись, что этой строки НЕТ!
+import './globals.css'; // <--- ВЕРНИ ЭТУ СТРОКУ, и пусть файл будет ПУСТЫМ
 import { Providers } from './providers';
 
 // const inter = Inter({ subsets: ['latin'] }); // Удали или закомментируй
