@@ -2,7 +2,7 @@
 
 import type { Metadata } from "next";
 import { Providers } from "./providers";
-import "@coinbase/onchainkit/styles.css"; // <--- ЭТОТ ИМПОРТ КРИТИЧЕСКИ ВАЖЕН ДЛЯ СТИЛЕЙ!
+import "@coinbase/onchainkit/styles.css";
 
 export const metadata: Metadata = {
   title: "TokenFlip",
