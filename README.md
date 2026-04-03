@@ -1,64 +1,82 @@
-**🚀 TokenFlip — WEB3 Mini App on Base 🟦**
+## 🚀 TokenFlip — WEB3 Mini App on Base 🟦
 
-My first vibe **WEB3** app built on the Base blockchain.
+My first vibe WEB3 app built on the Base blockchain.
 
-**⚔️ Play 1vs1 with real USDC — 50/50 chance 🎲**
-
+**⚔️ Play 1vs1 with real USDC — 50/50 chance 🎲**  
 Winner takes all.
 
 🔗 Live App: https://tokenflip-app.vercel.app/
 
-📱 **How to use**
+---
+
+## 📱 How to use
 
 For now, the app works best on mobile inside the Base app https://base.app/invite/polkamela/WWNK27F4
 
-⚠️ Desktop wallets like MetaMask and other integrations are not supported yet.
+⚠️ Desktop wallets like MetaMask are not supported yet.
 
-💰 **Requirements**
+---
+
+## 💰 Requirements
 
 To play, you need:
 
-USDC — to create or join game rooms
+- USDC — to create or join game rooms  
+- ETH (Base network) — to pay gas fees (very small fees)
 
-ETH (Base network) — to pay gas fees (very small fees)
+---
 
-🎮 **Gameplay**
+## 🎮 Gameplay
 
-Create a room with your bet (USDC)
+- Create a room with your bet (USDC)  
+- Another player joins  
+- Flip the coin 🎲  
+- 50/50 chance — winner takes all  
 
-Another player joins
+---
 
-Flip the coin 🎲
+## ⚙️ Smart Contract Logic
 
-50/50 chance — winner takes all
+- Player 1 creates a game with a USDC bet  
+- Player 2 joins with the same amount  
+- The contract locks both deposits  
+- A pseudo-random outcome decides the winner  
+- The winner receives the full prize (2x bet)  
 
-⚠️ **Disclaimer**
+---
+
+## 🎲 Randomness
+
+The current version uses on-chain pseudo-randomness based on block data.  
+
+⚠️ This approach is not fully secure and may be predictable under certain conditions.
+
+🔜 Future updates will include more secure randomness solutions  
+(e.g. Chainlink VRF or similar technologies).
+
+
+---
+
+## ⚠️ Disclaimer
 
 This is a gambling-style application.
 
-You are playing with real funds
+- You are playing with real funds  
+- All actions are fully your responsibility  
+- No guarantees of winning  
 
-All actions are fully your responsibility
+Play responsibly.
 
-There are no guarantees of winning
+---
 
-Play responsibly — just like in any casino.
+## 🛠️ Status
 
-🛠️ **Status**
+- MVP version  
+- Expanding wallet support  
+- UI/UX improvements coming  
 
-MVP version
+---
 
-Wallet integrations expanding
+## 💡 About
 
-UI/UX will improve
-
-
-💡 **About**
-
-Built as an experimental Web3 project on Base to explore:
-
-onchain gameplay
-
-crypto UX
-
-real-money interactions
+Built as an experimental Web3 project on Base.
