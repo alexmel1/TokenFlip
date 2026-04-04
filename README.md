@@ -1,4 +1,4 @@
-## 🚀 TokenFlip — WEB3 Mini App on Base 🟦
+## 🚀 TokenFlip — WEB3 App on Base 🟦
 
 My first vibe WEB3 app built on the Base blockchain.
 
