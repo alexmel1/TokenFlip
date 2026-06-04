@@ -42,7 +42,7 @@ To play, you need:
 - The contract locks both deposits  
 - A pseudo-random outcome decides the winner  
 - The winner receives the full prize (2x bet)  
-0xAF689F60447FD0f55eF7E74Fc7e08Db98ca5Fb33
+[0xAF689F60447FD0f55eF7E74Fc7e08Db98ca5Fb33](https://basescan.org/address/0xaf689f60447fd0f55ef7e74fc7e08db98ca5fb33)
 
 ---
 
