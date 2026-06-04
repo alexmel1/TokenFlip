@@ -19,6 +19,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <meta name="talentapp:project_verification" content="8e68c0e710831f2d87a50614438d623bad71d1bbc3cce77ecbeab11b7a893415e9b2b3335f2718ccfc743a6bba9ecd42f8dc4cebc33017e8178a2d0d8d0ef496" />
       </head>
       <body style={{ margin: 0, backgroundColor: '#020617' }}>
+        Impact-Site-Verification: 937fd3cc-f4f8-4dd2-9f80-0ef3da8cd569
         <Providers>{children}</Providers>
       </body>
     </html>
