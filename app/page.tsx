@@ -6,6 +6,7 @@ import { Identity, Avatar, Name, Address } from '@coinbase/onchainkit/identity';
 import { Transaction, TransactionButton, TransactionStatus, TransactionStatusLabel } from '@coinbase/onchainkit/transaction'; 
 import { useAccount, useReadContract, useBalance } from 'wagmi';
 import { parseUnits, formatUnits, encodeFunctionData } from 'viem';
+import { BUILDER_CODE } from "./lib/builderCode";
 
 const CONTRACT_ADDRESS = '0xAF689F60447FD0f55eF7E74Fc7e08Db98ca5Fb33' as `0x${string}`;
 const USDC_ADDRESS = '0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913' as `0x${string}`;
@@ -109,7 +110,7 @@ export default function Home() {
             <div style={{ background: '#0f172a', padding: '30px', borderRadius: '24px', border: '1px solid #1e293b', textAlign: 'center', marginBottom: '20px' }}>
               <input type="text" value={amount} onChange={(e) => setAmount(e.target.value)} style={{ width: '100%', background: 'transparent', border: 'none', color: 'white', fontSize: '3rem', textAlign: 'center', fontWeight: '900', outline: 'none' }} />
               <div style={{ color: '#3b82f6', fontSize: '0.8rem', marginBottom: '20px' }}>USDC BET</div>
-              <Transaction key={createTxKey} chainId={8453} calls={createCalls as any} onSuccess={() => { refreshLobby(); setTimeout(() => setCreateTxKey(p => p + 1), 2000); }}>
+              <Transaction key={createTxKey} chainId={8453} calls={createCalls as any} capabilities={{ dataSuffix: { value: BUILDER_CODE, optional: true } }} onSuccess={() => { refreshLobby(); setTimeout(() => setCreateTxKey(p => p + 1), 2000); }}>
                 <TransactionButton text="CREATE ROOM" className="bg-blue-600 w-full rounded-xl py-4 font-black" />
                 <div style={{ fontSize: '10px', marginTop: '10px' }}><TransactionStatus><TransactionStatusLabel /></TransactionStatus></div>
               </Transaction>
@@ -135,7 +136,7 @@ export default function Home() {
                           calls={[
                             { to: USDC_ADDRESS, data: encodeFunctionData({ abi: usdcAbi, functionName: 'approve', args: [CONTRACT_ADDRESS, duelAmt] }) },
                             { to: CONTRACT_ADDRESS, data: encodeFunctionData({ abi: abi, functionName: 'joinGame', args: [id] }) }
-                          ] as any} 
+                          ] as any} capabilities={{ dataSuffix: { value: BUILDER_CODE, optional: true } }}
                           onSuccess={handleJoinSuccess}
                         >
                           <TransactionButton text="JOIN" className="bg-green-600 !py-1.5 !px-0 !text-[10px] !font-black !min-w-0 !h-8" />
